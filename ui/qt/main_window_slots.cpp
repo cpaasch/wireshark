@@ -827,7 +827,7 @@ void MainWindow::setMenusForSelectedPacket()
 #if 0
     gboolean is_ip = FALSE, is_tcp = FALSE, is_udp = FALSE, is_sctp = FALSE;
 #else
-    gboolean is_tcp = FALSE, is_sctp = FALSE;
+    gboolean is_tcp = FALSE, is_sctp = FALSE, is_mptcp = TRUE;
 #endif
 
 //    /* Making the menu context-sensitive allows for easier selection of the
@@ -1025,6 +1025,8 @@ void MainWindow::setMenusForSelectedPacket()
     main_ui_->actionSCTPShowAllAssociations->setEnabled(is_sctp);
     main_ui_->actionSCTPFilterThisAssociation->setEnabled(is_sctp);
 
+    main_ui_->menuMPTCP->setEnabled(is_mptcp);
+    main_ui_->actionMPTCPAnalyzeThisConnection->setEnabled(is_mptcp);
 //    while (list_entry != NULL) {
 //        dissector_filter_t *filter_entry;
 //        gchar *path;
@@ -2017,6 +2019,52 @@ void MainWindow::on_actionSCTPFilterThisAssociation_triggered()
         assoc = NULL;
         emit filterPackets(newFilter, false);
     }
+}
+
+void MainWindow::on_actionMPTCPFilterThisAssociation_triggered()
+{
+
+//    sctp_assoc_info_t* assoc = SCTPAssocAnalyseDialog::findAssocForPacket(cap_file_);
+//    if (assoc) {
+    //.arg(assoc->assoc_id)
+        QString newFilter = QString("tcp.options.mptcp.stream==%1").arg("1");
+//        assoc = NULL;
+        emit filterPackets(newFilter, false);
+//    }
+}
+
+
+void MainWindow::on_actionMPTCPAnalyseThisConnection_triggered()
+{
+
+}
+
+void MainWindow::on_actionMPTCPShowAllConnections_triggered()
+{
+    openMPTCPAllAssocsDialog();
+}
+
+
+void MainWindow::openMPTCPAllAssocsDialog()
+{
+//    SCTPAllAssocsDialog *sctp_dialog = new SCTPAllAssocsDialog(this, cap_file_);
+//    connect(sctp_dialog, SIGNAL(filterPackets(QString&,bool)),
+//            this, SLOT(filterPackets(QString&,bool)));
+//    connect(this, SIGNAL(setCaptureFile(capture_file*)),
+//            sctp_dialog, SLOT(setCaptureFile(capture_file*)));
+//    sctp_dialog->fillTable();
+//
+//    if (sctp_dialog->isMinimized() == true)
+//    {
+//        sctp_dialog->showNormal();
+//    }
+//    else
+//    {
+//        sctp_dialog->show();
+//    }
+//
+//    sctp_dialog->raise();
+//    sctp_dialog->activateWindow();
 }
 
 

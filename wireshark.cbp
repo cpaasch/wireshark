@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="wireshark" />
+		<Option makefile_is_custom="1" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="all">
+				<Option output="bin/Debug/wireshark" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+				<MakeCommands>
+					<Build command="$make -j4 -C epan -f $makefile $target " />
+					<CompileFile command="$make -f $makefile $file" />
+					<Clean command="$make -f $makefile clean$target" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="$make -q -f $makefile $target" />
+					<SilentBuild command="$make -j4 -C epan -f $makefile $target  &gt; $(CMD_NULL)" />
+				</MakeCommands>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/wireshark" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="epan/conversation.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="epan/conversation.h" />
+		<Unit filename="epan/dissectors/packet-sctp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="epan/dissectors/packet-sctp.h" />
+		<Unit filename="epan/dissectors/packet-tcp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="epan/dissectors/packet-tcp.h" />
+		<Unit filename="epan/ip_opts.h" />
+		<Unit filename="epan/proto.h" />
+		<Unit filename="epan/tvbuff.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="epan/tvbuff.h" />
+		<Unit filename="ui/gtk/main_menubar.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/gtk/sctp_assoc_analyse.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/gtk/sctp_byte_graph_dlg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/gtk/sctp_chunk_stat.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/gtk/sctp_chunk_stat_dlg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/gtk/sctp_error_dlg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/gtk/sctp_graph_dlg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/gtk/sctp_stat_dlg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/gtk/sctp_stat_gtk.h" />
+		<Unit filename="ui/qt/main_window.cpp" />
+		<Unit filename="ui/qt/main_window.h" />
+		<Unit filename="ui/qt/main_window_slots.cpp" />
+		<Unit filename="ui/qt/packet_list.cpp" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

@@ -258,6 +258,7 @@ PacketList::PacketList(QWidget *parent) :
     ctx_menu_.addSeparator();
     submenu = new QMenu(tr("Follow..."));
     ctx_menu_.addMenu(submenu);
+    submenu->addAction(window()->findChild<QAction *>("actionAnalyzeFollowMPTCPStream"));
     submenu->addAction(window()->findChild<QAction *>("actionAnalyzeFollowTCPStream"));
     submenu->addAction(window()->findChild<QAction *>("actionAnalyzeFollowUDPStream"));
     submenu->addAction(window()->findChild<QAction *>("actionAnalyzeFollowSSLStream"));
@@ -270,6 +271,12 @@ PacketList::PacketList(QWidget *parent) :
     submenu->addAction(window()->findChild<QAction *>("actionSCTPAnalyseThisAssociation"));
     submenu->addAction(window()->findChild<QAction *>("actionSCTPShowAllAssociations"));
     submenu->addAction(window()->findChild<QAction *>("actionSCTPFilterThisAssociation"));
+    submenu = new QMenu(tr("MPTCP"));
+    ctx_menu_.addMenu(submenu);
+    submenu->addAction(window()->findChild<QAction *>("actionMPTCPAnalyzeThisConnection"));
+    submenu->addAction(window()->findChild<QAction *>("actionMPTCPFilterThisConnection"));
+//    submenu->addAction(window()->findChild<QAction *>("actionSCTPShowAllAssociations"));
+//    submenu->addAction(window()->findChild<QAction *>("actionSCTPFilterThisAssociation"));
     filter_actions_ << submenu->actions();
     ctx_menu_.addSeparator();
 //    "     <menuitem name='ManuallyResolveAddress' action='/ManuallyResolveAddress'/>\n"
@@ -363,6 +370,9 @@ PacketList::PacketList(QWidget *parent) :
 //    "     <menu name= 'SCTP' action='/SCTP'>\n"
 //    "        <menuitem name='AnalysethisAssociation' action='/SCTP/Analyse this Association'/>\n"
 //    "        <menuitem name='PrepareFilterforthisAssociation' action='/SCTP/Prepare Filter for this Association'/>\n"
+//    "     <menu name= 'MPTCP' action='/MPTCP'>\n"
+//    "        <menuitem name='AnalysethisAssociation' action='/MPTCP/Analyse this Association'/>\n"
+//    "        <menuitem name='PrepareFilterforthisConnection' action='/MPTCP/Prepare Filter for this connection'/>\n"
 //    "     <menuitem name='FollowTCPStream' action='/Follow TCP Stream'/>\n"
 //    "     <menuitem name='FollowUDPStream' action='/Follow UDP Stream'/>\n"
 //    "     <menuitem name='FollowSSLStream' action='/Follow SSL Stream'/>\n"

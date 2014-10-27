@@ -1289,6 +1289,10 @@ static const char *ui_desc_menubar =
 "        <menuitem name='AnalysethisAssociation' action='/Telephony/SCTP/AnalysethisAssociation'/>\n"
 "        <menuitem name='ShowAllAssociations' action='/Telephony/SCTP/ShowAllAssociations'/>\n"
 "      </menu>\n"
+"      <menu name= 'MPTCPmenu' action='/Telephony/MPTCP'>\n"
+"        <menuitem name='AnalysethisAssociation' action='/Telephony/MPTCP/AnalysethisAssociation'/>\n"
+"        <menuitem name='ShowAllConnections' action='/Telephony/MPTCP/ShowAllConnections'/>\n"
+"      </menu>\n"
 "      <menuitem name='SMPP' action='/Telephony/smpp_commands'/>\n"
 "      <menuitem name='UCP' action='/Telephony/ucp_messages'/>\n"
 "      <menuitem name='VoIPCalls' action='/Telephony/VoIPCalls'/>\n"
@@ -1725,6 +1729,7 @@ static const GtkActionEntry main_menu_bar_entries[] = {
    { "/Telephony/SCTP",                 NULL,                       "S_CTP",                        NULL, NULL, NULL },
    { "/Telephony/SCTP/AnalysethisAssociation",  NULL,               "Analyse this Association", NULL,                       NULL,               G_CALLBACK(sctp_analyse_start) },
    { "/Telephony/SCTP/ShowAllAssociations",     NULL,               "Show All Associations...", NULL,                       NULL,               G_CALLBACK(sctp_stat_start) },
+//   { "/Telephony/MPTCP/ShowAllConnections",     NULL,               "Show All Connections...", NULL,                       NULL,                G_CALLBACK(mptcp_stat_start) },
    { "/Telephony/smpp_commands",        NULL,                       "SM_PPOperations",          NULL,                       NULL,               G_CALLBACK(gtk_stats_tree_cb) },
    { "/Telephony/ucp_messages",         NULL,                       "_UCP Messages",            NULL,                       NULL,               G_CALLBACK(gtk_stats_tree_cb) },
    { "/Telephony/VoIPCalls",            WIRESHARK_STOCK_TELEPHONE,  "_VoIP Calls",              NULL,                       NULL,               G_CALLBACK(voip_calls_launch) },
@@ -2755,6 +2760,10 @@ static const char *ui_desc_packet_list_menu_popup =
 "        <menuitem name='AnalysethisAssociation' action='/SCTP/Analyse this Association'/>\n"
 "        <menuitem name='PrepareFilterforthisAssociation' action='/SCTP/Prepare Filter for this Association'/>\n"
 "     </menu>\n"
+"     <menu name= 'MPTCP' action='/MPTCP'>\n"
+"        <menuitem name='AnalysethisMptcpConnection' action='/MPTCP/Analyse this Connection'/>\n"
+"        <menuitem name='PrepareFilterforthisMptcpConnection' action='/MPTCP/Prepare Filter for this Connection'/>\n"
+"     </menu>\n"
 "     <menuitem name='FollowTCPStream' action='/Follow TCP Stream'/>\n"
 "     <menuitem name='FollowUDPStream' action='/Follow UDP Stream'/>\n"
 "     <menuitem name='FollowSSLStream' action='/Follow SSL Stream'/>\n"
@@ -2893,6 +2902,10 @@ static const GtkActionEntry packet_list_menu_popup_action_entries[] = {
   { "/SCTP",        NULL, "SCTP",               NULL, NULL, NULL },
   { "/SCTP/Analyse this Association",               NULL,       "Analyse this Association",             NULL, NULL, G_CALLBACK(sctp_analyse_start) },
   { "/SCTP/Prepare Filter for this Association",    NULL,       "Prepare Filter for this Association",  NULL, NULL, G_CALLBACK(sctp_set_assoc_filter) },
+
+  { "/MPTCP",        NULL, "MPTCP",               NULL, NULL, NULL },
+  { "/MPTCP/Analyse this Connection",               NULL,       "Analyse this Connection",             NULL, NULL, G_CALLBACK(sctp_analyse_start) },
+  { "/MPTCP/Prepare Filter for this Connection",    NULL,       "Prepare Filter for this Connection",  NULL, NULL, G_CALLBACK(sctp_set_assoc_filter) },
 
 
   { "/Follow TCP Stream",                           NULL,       "Follow TCP Stream",                    NULL, NULL, G_CALLBACK(follow_tcp_stream_cb) },

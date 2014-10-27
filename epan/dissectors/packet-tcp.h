@@ -196,8 +196,47 @@ typedef struct _tcp_flow_t {
 	guint32 process_pid;    /* PID of local process */
 	gchar *username;	/* Username of the local process */
 	gchar *command;         /* Local process name + path + args */
+
+
 } tcp_flow_t;
 
+
+//struct {
+//
+//    /** Keep track of mptcp stream **/
+//    guint32 stream;
+//    // 8 octets
+//    guint64 sendkey;
+//    guint64 recvkey;
+//}
+
+// structure, find
+struct mptcp_analysis {
+    // master tcp stream id  ?
+    guint16 mptcp_version;
+
+    /** Keep track of mptcp stream **/
+    guint32 stream;
+    // 8 octets
+    /*
+	 * If the source is greater than the destination, then stuff
+	 * sent from src is in ual1.
+	 *
+	 * If the source is less than the destination, then stuff
+	 * sent from src is in ual2.
+	 */
+    guint64 key1;
+    guint64 key2;
+
+    guint32 rand1;
+    guint32 rand2;
+//    recvkey;
+    /** List subflows (tracks tcp stream id) **/
+    GSList* subflows;
+
+    /** **/
+    guint32 master_stream;
+};
 
 struct tcp_analysis {
 	/* These two structs are managed based on comparing the source
@@ -264,7 +303,13 @@ struct tcp_analysis {
 	 * help determine which dissector to call
 	 */
 	guint16 server_port;
+
+    /** **/
+	struct mptcp_analysis* mptcp_analysis;
+//    guint32         mptcp_stream;
 };
+
+
 
 /* Structure that keeps per packet data. First used to be able
  * to calculate the time_delta from the last seen frame in this
@@ -305,6 +350,12 @@ extern void add_tcp_process_info(guint32 frame_num, address *local_addr, address
  * @return The number of TCP streams
  */
 WS_DLL_PUBLIC guint32 get_tcp_stream_count(void);
+
+/** Get the current number of TCP streams
+ *
+ * @return The number of TCP streams
+ */
+WS_DLL_PUBLIC guint32 get_mptcp_stream_count(void);
 
 #ifdef __cplusplus
 }

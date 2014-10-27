@@ -1256,6 +1256,7 @@ conversation_get_proto_data(const conversation_t *conv, const int proto)
 	return NULL;
 }
 
+
 void
 conversation_delete_proto_data(conversation_t *conv, const int proto)
 {

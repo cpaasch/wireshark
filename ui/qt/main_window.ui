@@ -28,16 +28,7 @@
     </sizepolicy>
    </property>
    <layout class="QGridLayout" name="gridLayout">
-    <property name="leftMargin">
-     <number>0</number>
-    </property>
-    <property name="topMargin">
-     <number>0</number>
-    </property>
-    <property name="rightMargin">
-     <number>0</number>
-    </property>
-    <property name="bottomMargin">
+    <property name="margin">
      <number>0</number>
     </property>
     <property name="spacing">
@@ -68,7 +59,7 @@
        <item>
         <widget class="QLineEdit" name="goToLineEdit">
          <property name="inputMask">
-          <string>900000000</string>
+          <string>900000000; </string>
          </property>
         </widget>
        </item>
@@ -109,7 +100,7 @@
      <x>0</x>
      <y>0</y>
      <width>960</width>
-     <height>22</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -320,6 +311,14 @@
      <addaction name="actionSCTPAnalyseThisAssociation"/>
      <addaction name="actionSCTPShowAllAssociations"/>
     </widget>
+    <widget class="QMenu" name="menuMPTCP">
+     <property name="title">
+      <string>MPTCP</string>
+     </property>
+     <addaction name="actionMPTCPAnalyzeThisAssociation"/>
+     <addaction name="actionMPTCPFilterThisConnection"/>
+     <addaction name="actionMPTCPAnalyzeThisConnection"/>
+    </widget>
     <addaction name="actionAnalyzeDisplayFilters"/>
     <addaction name="actionAnalyzeDisplayFilterMacros"/>
     <addaction name="separator"/>
@@ -330,6 +329,7 @@
     <addaction name="actionAnalyzeDecodeAs"/>
     <addaction name="separator"/>
     <addaction name="menuSCTP"/>
+    <addaction name="menuMPTCP"/>
     <addaction name="actionAnalyzeFollowTCPStream"/>
     <addaction name="actionAnalyzeFollowUDPStream"/>
     <addaction name="actionAnalyzeFollowSSLStream"/>
@@ -2027,6 +2027,21 @@
    </property>
    <property name="toolTip">
     <string>Display seconds with hours and minutes</string>
+   </property>
+  </action>
+  <action name="actionMPTCPAnalyzeThisAssociation">
+   <property name="text">
+    <string>Show all connections</string>
+   </property>
+  </action>
+  <action name="actionMPTCPFilterThisConnection">
+   <property name="text">
+    <string>Filter this connection</string>
+   </property>
+  </action>
+  <action name="actionMPTCPAnalyzeThisConnection">
+   <property name="text">
+    <string>Analyze this connection</string>
    </property>
   </action>
  </widget>

@@ -377,6 +377,10 @@ private slots:
     void on_actionSCTPShowAllAssociations_triggered();
     void on_actionSCTPAnalyseThisAssociation_triggered();
     void on_actionSCTPFilterThisAssociation_triggered();
+    void on_actionMPTCPFilterThisConnection_triggered();
+    void on_actionMPTCPShowAllConnections_triggered();
+    void on_actionMPTCPAnalyzeThisConnection_triggered();
+    void openMPTCPAllAssocsDialog();
 
     void openStatisticsTreeDialog(const gchar *abbr);
     void on_actionStatistics29WestTopics_Advertisements_by_Topic_triggered();
