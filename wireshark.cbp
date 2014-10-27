@@ -87,6 +87,8 @@
 		<Unit filename="ui/qt/main_window.h" />
 		<Unit filename="ui/qt/main_window_slots.cpp" />
 		<Unit filename="ui/qt/packet_list.cpp" />
+		<Unit filename="ui/qt/sctp_all_assocs_dialog.h" />
+		<Unit filename="ui/qt/ui_mptcp_all_con.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />
