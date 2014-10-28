@@ -43,6 +43,8 @@
 #include <epan/decode_as.h>
 #include <epan/in_cksum.h>
 
+#include <wsutil/sha1.h>
+
 #include "packet-tcp.h"
 #include "packet-ip.h"
 #include "packet-icmp.h"
@@ -2747,6 +2749,54 @@ dissect_tcpopt_timestamp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
     }
 }
 
+
+
+/*
+gboolean            (*GHRFunc)                          (gpointer key,
+                                                         gpointer value,
+                                                         gpointer user_data);
+                                                         */
+/** TODO will look for a matching mptcp_analysis !
+// _U_ <=> Unused
+user_data is a token
+TODO should be able to handle different hash types
+**/
+static gboolean
+check_mptcp_token(gpointer key, gpointer value, gpointer user_data)
+{
+//    guint64 token = user_data
+    conversation_t* conv = (conversation_t*)value;
+    struct tcp_analysis* analysis = conversation_get_proto_data(conv,proto_tcp);
+    if( conv->)
+    //generate sha1
+    #define SHA1_BUFFER_SIZE  20
+    unsigned char digest_buf[SHA1_BUFFER_SIZE)];
+    sha1_context sha1_ctx;
+    sha1_starts(&sha1_ctx);
+
+    sha1_update(&sha1_ctx, user_data,8);
+
+    sha1_finish(&sha1_ctx, digest_buf);
+
+//    buffer_size = SHA1_BUFFER_SIZE;
+    if( conv-)
+    return FALSE;
+}
+
+static struct tcp_analysis*
+find_mptcp_connection(guint64 token)
+{
+    //g_hash_table_foreach( conversation_hashtable_exact, conversation_hashtable_exact_to_texbuff, buffer);
+    // and g_hash_table_iter_next()
+    // http://developer.gimp.org/api/2.0/glib/glib-Hash-Tables.html#g-hash-table-find
+
+    // This should be slow so don't abuse it
+    conversation_t* conv;
+    // TODO pass on the token
+    conv = (conversation_t*)g_hash_table_find( get_conversation_hashtable_exact(), check_mptcp_token, (gpointer)&token);
+
+}
+
 /*
  * The TCP Extensions for Multipath Operation with Multiple Addresses
  * are defined in draft-ietf-mptcp-multiaddressed-04
@@ -2919,6 +2969,9 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                     break;
 
                 case 16:
+                    {
+                    guint64 token = 0;
+
                     flags = tvb_get_guint8(tvb, offset) & 0x01;
                     item = proto_tree_add_uint(mptcp_tree,
                             hf_tcp_option_mptcp_flags, tvb,
@@ -2939,11 +2992,28 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                     proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_sender_trunc_mac, tvb, offset,
                             8, ENC_BIG_ENDIAN);
+                    token = tvb_get_ntoh64(tvb,offset);
                     offset += 8;
 
                     proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_sender_rand, tvb, offset,
                             4, ENC_BIG_ENDIAN);
+
+                    if(!mptcpd) {
+                        conversation_t* conv;
+                        // TODO now it should compare token with all conversations
+                        // and attach it to a conversation
+                        // should save random nonce too
+                        conv = find_mptcp_connection(token);
+                        if(conv) {
+                            // TODO assign the streams, add as a subflow etc...
+                            DPRINT("Found Matching MPTCP connection !!");
+                        }
+        //                tcpd->mptcp_analysis = init_mptcp_conversation_data();
+        //                mptcpd = tcpd->mptcp_analysis;
+        //                mptcpd->master_stream=tcpd->stream;
+                    }
+                    }
                     break;
 
                 case 24:
