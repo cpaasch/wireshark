@@ -121,8 +121,9 @@
 		<Unit filename="ui/qt/main_window.cpp" />
 		<Unit filename="ui/qt/main_window.h" />
 		<Unit filename="ui/qt/main_window_slots.cpp" />
-		<Unit filename="ui/qt/mptcp_all_connections.cpp" />
-		<Unit filename="ui/qt/mptcp_all_connections.h" />
+		<Unit filename="ui/qt/mptcp_all_connections_dialog.cpp" />
+		<Unit filename="ui/qt/mptcp_all_connections_dialog.h" />
+		<Unit filename="ui/qt/mptcp_all_connections_dialog.moc.cpp" />
 		<Unit filename="ui/qt/mptcp_con_analysis.dialog.h" />
 		<Unit filename="ui/qt/mptcp_stream_dialog.h" />
 		<Unit filename="ui/qt/packet_list.cpp" />
@@ -132,7 +133,7 @@
 		<Unit filename="ui/qt/sctp_graph_dialog.h" />
 		<Unit filename="ui/qt/tcp_stream_dialog.cpp" />
 		<Unit filename="ui/qt/tcp_stream_dialog.h" />
-		<Unit filename="ui/qt/ui_mptcp_all_con.h" />
+		<Unit filename="ui/qt/ui_mptcp_all_connections_dialog.h" />
 		<Unit filename="ui/tap-sctp-analysis.c">
 			<Option compilerVar="CC" />
 		</Unit>
