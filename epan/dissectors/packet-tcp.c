@@ -3121,7 +3121,9 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                             // TODO assign the streams, add as a subflow etc...
 //                            g_print_err("Found Matching MPTCP connection !!");
                             tcpd->mptcp_analysis = mptcpd;
-                            // add_subflow_to_mptcp_connection()
+                            // associate_subflow_to_mptcp_connection(mptcp_analysis,);
+                            // can I give the tcp_analysis or tcpd->stream ?
+                            mptcpd->subflows = g_slist_prepend(mptcpd->subflows, (gpointer)&tcpd->stream);
                         }
         //                tcpd->mptcp_analysis = init_mptcp_conversation_data();
         //                mptcpd = tcpd->mptcp_analysis;

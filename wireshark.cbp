@@ -58,6 +58,13 @@
 		</Unit>
 		<Unit filename="epan/frame_data.h" />
 		<Unit filename="epan/ip_opts.h" />
+		<Unit filename="epan/print.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="epan/print.h" />
+		<Unit filename="epan/proto.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="epan/proto.h" />
 		<Unit filename="epan/tap.c">
 			<Option compilerVar="CC" />
@@ -68,10 +75,16 @@
 		</Unit>
 		<Unit filename="epan/tvbuff.h" />
 		<Unit filename="file.h" />
+		<Unit filename="tshark.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="ui/cli/tap-expert.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="ui/cli/tap-rtspstat.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/cli/tap-sctpchunkstat.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="ui/cli/tshark-tap.h" />
@@ -103,13 +116,20 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="ui/gtk/sctp_stat_gtk.h" />
+		<Unit filename="ui/qt/conversation_dialog.cpp" />
+		<Unit filename="ui/qt/conversation_dialog.h" />
 		<Unit filename="ui/qt/main_window.cpp" />
 		<Unit filename="ui/qt/main_window.h" />
 		<Unit filename="ui/qt/main_window_slots.cpp" />
+		<Unit filename="ui/qt/mptcp_all_connections.cpp" />
+		<Unit filename="ui/qt/mptcp_all_connections.h" />
 		<Unit filename="ui/qt/mptcp_con_analysis.dialog.h" />
 		<Unit filename="ui/qt/mptcp_stream_dialog.h" />
 		<Unit filename="ui/qt/packet_list.cpp" />
+		<Unit filename="ui/qt/sctp_all_assocs_dialog.cpp" />
 		<Unit filename="ui/qt/sctp_all_assocs_dialog.h" />
+		<Unit filename="ui/qt/sctp_graph_dialog.cpp" />
+		<Unit filename="ui/qt/sctp_graph_dialog.h" />
 		<Unit filename="ui/qt/tcp_stream_dialog.cpp" />
 		<Unit filename="ui/qt/tcp_stream_dialog.h" />
 		<Unit filename="ui/qt/ui_mptcp_all_con.h" />
@@ -117,6 +137,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="ui/tap-sctp-analysis.h" />
+		<Unit filename="ui/tap-sequence-analysis.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/tap-sequence-analysis.h" />
 		<Unit filename="ui/tap-tcp-stream.c">
 			<Option compilerVar="CC" />
 		</Unit>

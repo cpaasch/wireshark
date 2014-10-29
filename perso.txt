@@ -3,6 +3,12 @@
 
 When compiling, do make -C epan/dissectors
 
+=== Tshark specifics ====
+proto.c:proto_registrar_dump_fields
+
+=== To add a file ===
+check Makefile.am, et Makefile.common
+
 ==== To tests current code ===
 
 ./wireshark -r ~/pcaps/mptcp167.1407349533.bmL/dump_strip.pcap -Y "ipv6.src == 2001:41d0:a:38a8::1"

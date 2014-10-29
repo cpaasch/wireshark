@@ -190,6 +190,8 @@ sequence_dialog.cpp sequence_dialog.h: ui_sequence_dialog.h
 
 sctp_all_assocs_dialog.cpp sctp_all_assocs_dialog.h: ui_sctp_all_assocs_dialog.h
 
+mptcp_all_connections_dialog.cpp mptcp_all_connections_dialog.h: ui_mptcp_all_connections_dialog.h
+
 sctp_assoc_analyse_dialog.cpp sctp_assoc_analyse_dialog.h: ui_sctp_assoc_analyse_dialog.h
 
 sctp_chunk_statistics_dialog.cpp sctp_chunk_statistics_dialog.h: ui_sctp_chunk_statistics_dialog.h

@@ -67,6 +67,7 @@ NODIST_GENERATED_HEADER_FILES =	\
 	ui_sctp_graph_dialog.h	\
 	ui_sctp_graph_arwnd_dialog.h	\
 	ui_sctp_graph_byte_dialog.h	\
+	ui_mptcp_all_connections_dialog.h \
 	ui_stats_tree_dialog.h	\
 	ui_search_frame.h	\
 	ui_sequence_dialog.h	\
@@ -179,6 +180,7 @@ MOC_HDRS =	\
 	sctp_graph_dialog.h	\
 	sctp_graph_arwnd_dialog.h	\
 	sctp_graph_byte_dialog.h	\
+	mptcp_all_connections_dialog.h \
 	sequence_diagram.h	\
 	sequence_dialog.h	\
 	simple_dialog.h	\
@@ -236,6 +238,7 @@ UI_FILES =	\
 	sctp_graph_dialog.ui	\
 	sctp_graph_arwnd_dialog.ui	\
 	sctp_graph_byte_dialog.ui	\
+	mptcp_all_connections_dialog.ui \
 	search_frame.ui	\
 	sequence_dialog.ui	\
 	splash_overlay.ui	\
