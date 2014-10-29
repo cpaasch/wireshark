@@ -1,0 +1,25 @@
+==== To Speed up compilation ===
+./configure --enable-setcap-install --without-gtk3 --with-qt 
+
+When compiling, do make -C epan/dissectors
+
+==== To tests current code ===
+
+./wireshark -r ~/pcaps/mptcp167.1407349533.bmL/dump_strip.pcap -Y "ipv6.src == 2001:41d0:a:38a8::1"
+
+Can do the test on :
+0,6,48358,25,subflowId,IPversion,sport,dport,saddr,daddr
+0,4,39708,80,37.187.1.175,37.187.1.175
+1,4,35857,80,37.187.1.175,37.187.1.175
+
+
+If i take this connection for instance:
+	Subflow 0 with wscale : 7 7 IPv4 sport 40897 dport 80 saddr 37.187.104.168 daddr 130.104.230.45 
+		Subflow 1 with wscale : 7 7 IPv4 sport 39068 dport 80 saddr 37.187.104.168 daddr 130.104.230.45 
+
+		c le master: voici 
+			Subflow 2 with wscale : 7 7 IPv6 sport 52504 dport 80 saddr 2001:41d0:a:38a8::1 daddr 2001:6a8:3080:1:216:3eff:fec5:c815 
+
+			la clé corresponds 17578475652852252522
+			le token que j'obtiens de la clé 592565504d
+			alors que je devrais obtenir     109896498 (4 octets)

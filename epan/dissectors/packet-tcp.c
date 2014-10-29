@@ -2762,18 +2762,23 @@ user_data is a token
 TODO should be able to handle different hash types
 **/
 static gboolean
-check_mptcp_token(gpointer key, gpointer value, gpointer user_data)
+check_mptcp_token(gpointer key _U_, gpointer value, gpointer user_data)
 {
 //    guint64 token = user_data
-    guint32 token ==
+    guint32 token_to_find = *(guint32*)user_data;
+
     conversation_t* conv = (conversation_t*)value;
     struct tcp_analysis* analysis = (struct tcp_analysis*)conversation_get_proto_data(conv,proto_tcp);
+
+    printf("Token to find %u\n", token_to_find);
     if(analysis) {
         if(analysis->mptcp_analysis) {
+
             struct mptcp_analysis* mptcpd = analysis->mptcp_analysis;
 
-            return mptcpd->token1
-            DPRINT("test");
+            printf("Comparing token: %u with %u and %u \n",token_to_find,mptcpd->token1,mptcpd->token2);
+            return (mptcpd->token1 == token_to_find || mptcpd->token2 == token_to_find);
+//            DPRINT("test");
         }
     }
 
@@ -2806,29 +2811,73 @@ check_mptcp_token(gpointer key, gpointer value, gpointer user_data)
    handshake algorithm, as defined in Section 3.1.
 
     TODO choose algorithm
+Algo from mptcptrace:
+int compareHash(void* element, int pos, void* arg, void *acc){
+	mptcp_conn *mc = (mptcp_conn*)element;
+	u_char sha_dig2[20];
+	SHA1(mc->server_key,KEY_SIZE,sha_dig2);
+	return (memcmp(sha_dig2,arg,4)==0) ? 1 : 0;
     */
-guint32
-generate_mptcp_token_from_key(guint64 key)
+static guint32
+generate_mptcp_token_from_key(
+//guint64 key
+const guint8* key
+)
 {
-    guint32 result;
+    guint32 result = 0;
+    int i = 0;
     //generate sha1
     #define SHA1_BUFFER_SIZE  20
-    unsigned char digest_buf[SHA1_BUFFER_SIZE)];
+    guint8 digest_buf[SHA1_BUFFER_SIZE];
     sha1_context sha1_ctx;
     sha1_starts(&sha1_ctx);
-
-    sha1_update(&sha1_ctx, user_data,8);
+    // la clé a l'air de passer correctement, dans le bon ordre
+//    printf("key [%lu] to hash\n",key);
+    //(guint8*)
+    sha1_update(&sha1_ctx, key,8);
 // 20 octests
     sha1_finish(&sha1_ctx, digest_buf);
     // truncated to the 32 most significant bits
 //    guint32_to_str_buf()
 //    str_to_val()
-    result = (guint32)(digest_buf >> 16;
-    return
+//    for(i = 0; i < ; ++i) {
+    i = 3;
+//        result = (digest_buf[i] << 24);
+//        result |= (digest_buf[i-1] << 16);
+//        result |= (digest_buf[i-2] << 8);
+//        result |= (digest_buf[i-3] << 0);
+//       result = (digest_buf[i] << 0);
+//
+//    printf("result: %u\n",result);
+        result = (digest_buf[i] << 0);
+        result |= (digest_buf[i-1] << 8);
+        result |= (digest_buf[i-2] << 16);
+        result |= (digest_buf[i-3] << 24);
+    printf("result: %u\n",result);
+
+//    i = 19;
+//        result = (digest_buf[i] << 24);
+//        result |= (digest_buf[i-1] << 16);
+//        result |= (digest_buf[i-2] << 8);
+//        result |= (digest_buf[i-3] << 0);
+//       result = (digest_buf[i] << 0);
+//
+//    printf("result: %u\n",result);
+//        result = (digest_buf[i] << 0);
+//        result |= (digest_buf[i-1] << 8);
+//        result |= (digest_buf[i-2] << 16);
+//        result |= (digest_buf[i-3] << 24);
+//    printf("result: %u\n",result);
+//    }
+//			proto_tree_add_text(udvm_tree, message_tvb, 0, -1,
+//					"Calculated SHA-1: %s",
+//					bytes_to_ep_str(sha1_digest_buf, STATE_BUFFER_SIZE));
+    return result;
 }
 
-static struct tcp_analysis*
-find_mptcp_connection(guint64 token)
+// TODO return mptcp_analysis instead ?
+static struct mptcp_analysis*
+find_mptcp_connection(guint32 token)
 {
     //g_hash_table_foreach( conversation_hashtable_exact, conversation_hashtable_exact_to_texbuff, buffer);
     // and g_hash_table_iter_next()
@@ -2836,10 +2885,28 @@ find_mptcp_connection(guint64 token)
 
     // This should be slow so don't abuse it
     conversation_t* conv;
+//    struct mptcp_analysis* mptcpd;
     // TODO pass on the token
+    printf("search for mptcp connection...\n");
     conv = (conversation_t*)g_hash_table_find( get_conversation_hashtable_exact(), check_mptcp_token, (gpointer)&token);
 
+
+//    guint32 token_to_find = *(guint32*)user_data;
+//    conversation_t* conv = (conversation_t*)value;
+    if(conv){
+
+        struct tcp_analysis* tcpd = (struct tcp_analysis*)conversation_get_proto_data(conv,proto_tcp);
+
+        if(tcpd && tcpd->mptcp_analysis){
+            return tcpd->mptcp_analysis;
+        }
+    }
+
+    return NULL;
 }
+
+// TODO
+//add_subflow_to_mptcp_connection()
 
 /*
  * The TCP Extensions for Multipath Operation with Multiple Addresses
@@ -2895,7 +2962,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
 
     mptcpd = tcpd->mptcp_analysis;
 
-
+//    printf("dissecting mptcp option");
     switch (subtype) {
         case TCPOPT_MPTCP_MP_CAPABLE:
             // TODO check if it is
@@ -2904,6 +2971,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                 tcpd->mptcp_analysis = init_mptcp_conversation_data();
                 mptcpd = tcpd->mptcp_analysis;
                 mptcpd->master_stream=tcpd->stream;
+//                printf("Created new MPTCP connection\n");
             }
 
 
@@ -2924,7 +2992,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
 
             if (optlen == 12 || optlen == 20) {
                 int direction;
-
+                const guint8* temp = 0;
                 /* check direction and get ua lists */
                 direction=CMP_ADDRESS(&pinfo->src, &pinfo->dst);
                     /* if the addresses are equal, match the ports instead */
@@ -2936,6 +3004,9 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                 item = proto_tree_add_item(mptcp_tree,
                         hf_tcp_option_mptcp_sender_key, tvb, offset, 8, ENC_BIG_ENDIAN);
 
+//                item = proto_tree_add_item(mptcp_tree,
+//                        hf_tcp_option_mptcp_sender_key, tvb, offset, 8, ENC_BIG_ENDIAN);
+
 //                tvb_get_bits64
 // TODO should redo it for the receiver key
 // TODO it should check it is not registered already, depending on direction
@@ -2944,7 +3015,24 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
 //                        expert_add_info(pinfo, item, &ei_tcp_option_mptcp_reset_newkey );
 //                    }
 //                    else {
+                        temp = tvb_get_ptr(tvb,offset,8);
                         mptcpd->key1 = tvb_get_ntoh64(tvb,offset);
+                        //mptcpd->key1
+                        mptcpd->token1 = generate_mptcp_token_from_key( temp );
+                // TODO used just for debug
+                printf("Token [%u] from key [%lu]",mptcpd->token1,mptcpd->key1);
+                item = proto_tree_add_debug_text(mptcp_tree,"Token: %u",mptcpd->token1 );
+//            proto_tree_add_debug_text(tree, format)
+            /**
+            			proto_tree_add_text(udvm_tree, message_tvb, 0, -1,
+					"Calculated SHA-1: %s",
+					bytes_to_ep_str(sha1_digest_buf, STATE_BUFFER_SIZE));
+					**/
+            // A priori les octets existent
+            //tvb_bytes_exist(tvb, offset, buffer_size) &&
+            // == 0 => equal
+//            if(
+//                (tvb_memeql(tvb, offset, digest_buf, buffer_size) == 0)) {
 //                    }
 //                }
 //                else {
@@ -2954,7 +3042,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
 //                    else {
 //                        mptcpd->key2 = tvb_get_ntoh64(tvb,offset);
 //                    }
-                }
+//                }
                 offset += 8;
 //                mptcp_analysis->sendkey = tvb_get_bits64();
 //
@@ -2964,17 +3052,26 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
             }
 
             if (optlen == 20) {
+                const guint8* temp = 0;
                 proto_tree_add_item(mptcp_tree,
                         hf_tcp_option_mptcp_recv_key, tvb, offset, 8, ENC_BIG_ENDIAN);
 
+                // get bytes
+                temp = tvb_get_ptr(tvb,offset,8);
                 mptcpd->key2 = tvb_get_ntoh64(tvb,offset);
+                mptcpd->token2 = generate_mptcp_token_from_key( temp );
+                printf("token2 [%u]\n",mptcpd->token2);
+                item = proto_tree_add_debug_text(mptcp_tree,"Token: %u",mptcpd->token2 );
             }
             break;
 
         case TCPOPT_MPTCP_MP_JOIN:
 
             switch (optlen) {
+                /* Syn */
                 case 12:
+                    {
+                    guint32 token = 0;
                     flags = tvb_get_guint8(tvb, offset) & 0x01;
                     item = proto_tree_add_uint(mptcp_tree,
                             hf_tcp_option_mptcp_flags, tvb,
@@ -2995,26 +3092,48 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                     item = proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_recv_token, tvb, offset,
                             4, ENC_BIG_ENDIAN);
+                    token = tvb_get_ntohl(tvb,offset);
                     offset += 4;
 
                     proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_sender_rand, tvb, offset,
                             4, ENC_BIG_ENDIAN);
-                    if(!mptcpd) {
+//                    if(!mptcpd) {
                         //§
                         // TODO now it should compare token with all conversations
                         // and attach it to a conversation
                         // should save random nonce too
+//                        find_mptcp_connection()
+        //                tcpd->mptcp_analysis = init_mptcp_conversation_data();
+        //                mptcpd = tcpd->mptcp_analysis;
+        //                mptcpd->master_stream=tcpd->stream;
+//                    }
+                    if(!mptcpd) {
+                        printf("MP_JOIN, no key\n");
+//                        conversation_t* conv;
+//                        struct mptcp_analysis* mptcpd;
+                        // TODO now it should compare token with all conversations
+                        // and attach it to a conversation
+                        // should save random nonce too
+                        mptcpd = find_mptcp_connection(token);
+                        if(mptcpd) {
+                            printf("===================\nFOUND a MATCH\n===================\n");
+                            // TODO assign the streams, add as a subflow etc...
+//                            g_print_err("Found Matching MPTCP connection !!");
+                            tcpd->mptcp_analysis = mptcpd;
+                            // add_subflow_to_mptcp_connection()
+                        }
         //                tcpd->mptcp_analysis = init_mptcp_conversation_data();
         //                mptcpd = tcpd->mptcp_analysis;
         //                mptcpd->master_stream=tcpd->stream;
                     }
-
+                    }
                     break;
 
-                case 16:
+
+                case 16:    /* Syn/Ack */
                     {
-                    guint64 token = 0;
+//                    guint64 token = 0;
 
                     flags = tvb_get_guint8(tvb, offset) & 0x01;
                     item = proto_tree_add_uint(mptcp_tree,
@@ -3036,31 +3155,19 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                     proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_sender_trunc_mac, tvb, offset,
                             8, ENC_BIG_ENDIAN);
-                    token = tvb_get_ntoh64(tvb,offset);
+//                    token = tvb_get_ntoh64(tvb,offset);
                     offset += 8;
 
                     proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_sender_rand, tvb, offset,
                             4, ENC_BIG_ENDIAN);
 
-                    if(!mptcpd) {
-                        conversation_t* conv;
-                        // TODO now it should compare token with all conversations
-                        // and attach it to a conversation
-                        // should save random nonce too
-                        conv = find_mptcp_connection(token);
-                        if(conv) {
-                            // TODO assign the streams, add as a subflow etc...
-                            DPRINT("Found Matching MPTCP connection !!");
-                        }
-        //                tcpd->mptcp_analysis = init_mptcp_conversation_data();
-        //                mptcpd = tcpd->mptcp_analysis;
-        //                mptcpd->master_stream=tcpd->stream;
-                    }
+
                     }
                     break;
 
-                case 24:
+
+                case 24:    /* Ack */
                     offset += 2;
                     for (indx = 0; indx < 5; indx++) {
                         proto_tree_add_item(mptcp_tree,

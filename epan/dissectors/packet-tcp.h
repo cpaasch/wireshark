@@ -209,6 +209,11 @@ typedef struct _tcp_flow_t {
 //    guint64 sendkey;
 //    guint64 recvkey;
 //}
+// TODO should be a list of them
+struct mptcp_join {
+    guint32 rand1;
+    guint32 rand2;
+};
 
 // structure, find
 struct mptcp_analysis {
@@ -228,8 +233,12 @@ struct mptcp_analysis {
     guint64 key1;
     guint64 key2;
 
-    guint32 rand1;
-    guint32 rand2;
+    /* sha1 digest of keys, truncated to 32 most significant bits */
+    guint32 token1;
+    guint32 token2;
+
+//    guint32 rand1;
+//    guint32 rand2;
 //    recvkey;
     /** List subflows (tracks tcp stream id) **/
     GSList* subflows;

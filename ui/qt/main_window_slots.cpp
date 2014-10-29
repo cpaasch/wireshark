@@ -2021,7 +2021,7 @@ void MainWindow::on_actionSCTPFilterThisAssociation_triggered()
     }
 }
 
-void MainWindow::on_actionMPTCPFilterThisAssociation_triggered()
+void MainWindow::on_actionMPTCPFilterThisConnection_triggered()
 {
 
 //    sctp_assoc_info_t* assoc = SCTPAssocAnalyseDialog::findAssocForPacket(cap_file_);
@@ -2034,7 +2034,7 @@ void MainWindow::on_actionMPTCPFilterThisAssociation_triggered()
 }
 
 
-void MainWindow::on_actionMPTCPAnalyseThisConnection_triggered()
+void MainWindow::on_actionMPTCPAnalyzeThisConnection_triggered()
 {
 
 }
