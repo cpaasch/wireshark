@@ -88,6 +88,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="ui/cli/tshark-tap.h" />
+		<Unit filename="ui/follow.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/follow.h" />
 		<Unit filename="ui/gtk/conversation_hastables_dlg.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -116,6 +120,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="ui/gtk/sctp_stat_gtk.h" />
+		<Unit filename="ui/io_graph_item.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/io_graph_item.h" />
 		<Unit filename="ui/qt/conversation_dialog.cpp" />
 		<Unit filename="ui/qt/conversation_dialog.h" />
 		<Unit filename="ui/qt/main_window.cpp" />
@@ -133,7 +141,15 @@
 		<Unit filename="ui/qt/sctp_graph_dialog.h" />
 		<Unit filename="ui/qt/tcp_stream_dialog.cpp" />
 		<Unit filename="ui/qt/tcp_stream_dialog.h" />
+		<Unit filename="ui/qt/traffic_table_dialog.cpp" />
+		<Unit filename="ui/qt/traffic_table_dialog.h" />
 		<Unit filename="ui/qt/ui_mptcp_all_connections_dialog.h" />
+		<Unit filename="ui/rtp_analysis.h" />
+		<Unit filename="ui/rtp_stream.h" />
+		<Unit filename="ui/tap-rtp-common.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/tap-rtp-common.h" />
 		<Unit filename="ui/tap-sctp-analysis.c">
 			<Option compilerVar="CC" />
 		</Unit>
