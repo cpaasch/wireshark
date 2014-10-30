@@ -375,6 +375,7 @@ WIRESHARK_QT_SRC =	\
 	sctp_graph_dialog.cpp	\
 	sctp_graph_arwnd_dialog.cpp	\
 	sctp_graph_byte_dialog.cpp	\
+	mptcp_all_connections_dialog.cpp \
 	search_frame.cpp	\
 	sequence_diagram.cpp	\
 	sequence_dialog.cpp	\

@@ -61,7 +61,7 @@ private slots:
     void on_setFilterButton_clicked();
     void on_showSubflows_clicked();
 
-    void getSelectedItem();
+//    void getSelectedItem();
 
 private:
     Ui::MPTCPAllConnectionsDialog *ui;

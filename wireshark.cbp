@@ -40,11 +40,24 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="epan/column-info.h" />
+		<Unit filename="epan/column-utils.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="epan/column-utils.h" />
+		<Unit filename="epan/column.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="epan/column.h" />
 		<Unit filename="epan/conversation.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="epan/conversation.h" />
 		<Unit filename="epan/conversation_debug.h" />
+		<Unit filename="epan/conversation_table.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="epan/conversation_table.h" />
 		<Unit filename="epan/dissectors/packet-sctp.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -53,11 +66,20 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="epan/dissectors/packet-tcp.h" />
+		<Unit filename="epan/filter_expressions.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="epan/filter_expressions.h" />
 		<Unit filename="epan/frame_data.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="epan/frame_data.h" />
 		<Unit filename="epan/ip_opts.h" />
+		<Unit filename="epan/ipv4.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="epan/ipv4.h" />
+		<Unit filename="epan/ipv6-utils.h" />
 		<Unit filename="epan/print.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -126,6 +148,7 @@
 		<Unit filename="ui/io_graph_item.h" />
 		<Unit filename="ui/qt/conversation_dialog.cpp" />
 		<Unit filename="ui/qt/conversation_dialog.h" />
+		<Unit filename="ui/qt/follow_stream_dialog.h" />
 		<Unit filename="ui/qt/main_window.cpp" />
 		<Unit filename="ui/qt/main_window.h" />
 		<Unit filename="ui/qt/main_window_slots.cpp" />

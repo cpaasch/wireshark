@@ -18,9 +18,12 @@ un conversation_dialog.h
 Dans conversation_dialog.h, il faut enregistrer un:
 typedef struct register_ct register_ct_t;
 dans follow.h, ajouter MPTCP
+void TrafficTableDialog::copyAsCsv()
 
 === To add a file ===
 check Makefile.am, et Makefile.common
+
+
 
 ==== To tests current code ===
 

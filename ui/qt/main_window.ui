@@ -315,7 +315,7 @@
      <property name="title">
       <string>MPTCP</string>
      </property>
-     <addaction name="actionMPTCPAnalyzeThisAssociation"/>
+     <addaction name="actionMPTCPShowAllConnections"/>
      <addaction name="actionMPTCPFilterThisConnection"/>
      <addaction name="actionMPTCPAnalyzeThisConnection"/>
     </widget>
@@ -2029,7 +2029,7 @@
     <string>Display seconds with hours and minutes</string>
    </property>
   </action>
-  <action name="actionMPTCPAnalyzeThisAssociation">
+  <action name="actionMPTCPShowAllConnections">
    <property name="text">
     <string>Show all connections</string>
    </property>

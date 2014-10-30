@@ -19,9 +19,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "sctp_all_assocs_dialog.h"
-#include "ui_sctp_all_assocs_dialog.h"
-#include "sctp_assoc_analyse_dialog.h"
+#include "mptcp_all_connections_dialog.h"
+#include "ui_mptcp_all_connections_dialog.h"
+//#include "ui_sctp_all_assocs_dialog.h"
+//#include "sctp_assoc_analyse_dialog.h"
 
 #include "qt_ui_utils.h"
 //#include "wireshark_application.h"
@@ -41,7 +42,7 @@ MPTCPAllConnectionsDialog::MPTCPAllConnectionsDialog(QWidget *parent, capture_fi
     cap_file_(cf)
 {
     ui->setupUi(this);
-    sctp_assocs = (sctp_allassocs_info_t *)g_malloc(sizeof(sctp_allassocs_info_t));
+//    sctp_assocs = (sctp_allassocs_info_t *)g_malloc(sizeof(sctp_allassocs_info_t));
     fillTable();
 }
 
@@ -54,8 +55,8 @@ void MPTCPAllConnectionsDialog::fillTable()
 {
     // GSList / GLIST
     QString output;
-    GList *list;
-    sctp_assoc_info_t* assinfo;
+//    GList *list;
+//    sctp_assoc_info_t* assinfo;
     int numAssocs;
 
     ui->assocList->setColumnHidden(0, true);
@@ -64,65 +65,74 @@ void MPTCPAllConnectionsDialog::fillTable()
     ui->assocList->setColumnWidth(3,  150);
     ui->assocList->setColumnWidth(4,  150);
 
-    sctp_assocs = (sctp_allassocs_info_t*)sctp_stat_get_info();
-    if (sctp_stat_get_info()->is_registered == FALSE) {
-        register_tap_listener_sctp_stat();
-        /*  (redissect all packets) */
-        cf_retap_packets(cap_file_);
-    }
+//    sctp_assocs = (sctp_allassocs_info_t*)sctp_stat_get_info();
+//    if (sctp_stat_get_info()->is_registered == FALSE) {
+//        register_tap_listener_sctp_stat();
+//        /*  (redissect all packets) */
+//        cf_retap_packets(cap_file_);
+//    }
     numAssocs = 0;
-    ui->assocList->setRowCount(g_list_length(sctp_assocs->assoc_info_list));
+//    ui->assocList->setRowCount(g_list_length(sctp_assocs->assoc_info_list));
+    ui->assocList->setRowCount( 2 );
 
-    list = g_slist_first(sctp_assocs->assoc_info_list);
+//    list = g_slist_first(sctp_assocs->assoc_info_list);
 
-    while (list) {
-        assinfo = (sctp_assoc_info_t*)(list->data);
-        ui->assocList->setItem(numAssocs, 0, new QTableWidgetItem(QString("%1").arg(assinfo->assoc_id)));
-        ui->assocList->setItem(numAssocs, 1, new QTableWidgetItem(QString("%1").arg(assinfo->port1)));
-        ui->assocList->setItem(numAssocs, 2, new QTableWidgetItem(QString("%1").arg(assinfo->port2)));
-        ui->assocList->setItem(numAssocs, 3, new QTableWidgetItem(QString("%1").arg(assinfo->n_packets)));
-        ui->assocList->setItem(numAssocs, 4, new QTableWidgetItem(QString("%1").arg(assinfo->n_data_chunks)));
-        ui->assocList->setItem(numAssocs, 5, new QTableWidgetItem(QString("%1").arg(assinfo->n_data_bytes)));
-        list = g_list_next(list);
+//    while (list) {
+    while (numAssocs < 2) {
+//        assinfo = (sctp_assoc_info_t*)(list->data);
+        ui->assocList->setItem(numAssocs, 0, new QTableWidgetItem(QString("%1").arg(3)));
+        ui->assocList->setItem(numAssocs, 1, new QTableWidgetItem(QString("%1").arg(42)));
+//        ui->assocList->setItem(numAssocs, 2, new QTableWidgetItem(QString("%1").arg(assinfo->port2)));
+//        ui->assocList->setItem(numAssocs, 3, new QTableWidgetItem(QString("%1").arg(assinfo->n_packets)));
+//        ui->assocList->setItem(numAssocs, 4, new QTableWidgetItem(QString("%1").arg(assinfo->n_data_chunks)));
+//        ui->assocList->setItem(numAssocs, 5, new QTableWidgetItem(QString("%1").arg(assinfo->n_data_bytes)));
+//        list = g_list_next(list);
         numAssocs++;
     }
     ui->analyseButton->setEnabled(false);
     ui->setFilterButton->setEnabled(false);
-    connect(ui->assocList, SIGNAL(itemSelectionChanged()), this, SLOT(getSelectedItem()));
- }
-
-sctp_assoc_info_t* MPTCPAllConnectionsDialog::findSelectedAssoc()
-{
-    QTableWidgetItem *selection;
-    GList *list;
-    sctp_assoc_info_t* assinfo;
-    int row, id;
-
-    selection = ui->assocList->selectedItems()[0];
-    row = selection->row();
-    selection = ui->assocList->item(row, 0);
-    id = (selection->data(0)).toInt();
-    list = g_list_first(sctp_assocs->assoc_info_list);
-
-    while (list) {
-        assinfo = (sctp_assoc_info_t*)(list->data);
-        if (assinfo->assoc_id == id) {
-            return assinfo;
-        }
-        list = g_list_next(list);
-    }
-    return NULL;
+//    connect(ui->assocList, SIGNAL(itemSelectionChanged()), this, SLOT(getSelectedItem()));
 }
 
-void MPTCPAllConnectionsDialog::getSelectedItem()
-{
-    ui->analyseButton->setEnabled(true);
-    ui->setFilterButton->setEnabled(true);
-    ui->analyseButton->setFocus(Qt::OtherFocusReason);
-    selected_assoc = findSelectedAssoc();
-    printf("selection changed assoc now %p with id %d\n",
-           selected_assoc, selected_assoc->assoc_id);
-}
+ // To convert to string
+ //get_conversation_port
+ //get_conversation_address
+ //nstime_to_sec
+//         col_str = QString("%L1").arg(packets);
+//        setText(CONV_COLUMN_PACKETS, col_str);
+//sctp_assoc_info_t* MPTCPAllConnectionsDialog::findSelectedAssoc()
+//{
+//    QTableWidgetItem *selection;
+//    GList *list;
+//    sctp_assoc_info_t* assinfo;
+//    int row, id;
+//
+//    selection = ui->assocList->selectedItems()[0];
+//    row = selection->row();
+//    selection = ui->assocList->item(row, 0);
+//    id = (selection->data(0)).toInt();
+//    list = g_list_first(sctp_assocs->assoc_info_list);
+//
+//    while (list) {
+//        assinfo = (sctp_assoc_info_t*)(list->data);
+//        if (assinfo->assoc_id == id) {
+//            return assinfo;
+//        }
+//        list = g_list_next(list);
+//    }
+//    return NULL;
+//}
+
+//void MPTCPAllConnectionsDialog::currentFlow()
+//{
+//    ui->analyseButton->setEnabled(true);
+//    ui->setFilterButton->setEnabled(true);
+//    ui->analyseButton->setFocus(Qt::OtherFocusReason);
+////    selected_assoc = findSelectedAssoc();
+//    //currentFlow
+//    printf("selection changed assoc now %p with id %d\n",
+//           selected_assoc, selected_assoc->assoc_id);
+//}
 
 void MPTCPAllConnectionsDialog::on_showSubflows_clicked()
 {
@@ -157,16 +167,16 @@ void MPTCPAllConnectionsDialog::on_analyseButton_clicked()
 
 void MPTCPAllConnectionsDialog::on_setFilterButton_clicked()
 {
-  guint32 stream_id = selected_master->mptcp_analysis->stream;
-    if (!selected_assoc){
-        selected_assoc = findSelectedAssoc();
-        printf("on_setFilterButton_clicked found assoc %p with id %d\n",
-               selected_assoc, selected_assoc->assoc_id);
-    }
-
-    QString newFilter = QString("tcp.options.mptcp.stream==%1").arg();
-    selected_assoc = NULL;
-    emit filterPackets(newFilter, false);
+//    guint32 stream_id = selected_master->mptcp_analysis->stream;
+//    if (!selected_assoc){
+//        selected_assoc = findSelectedAssoc();
+//        printf("on_setFilterButton_clicked found assoc %p with id %d\n",
+//               selected_assoc, selected_assoc->assoc_id);
+//    }
+//
+//    QString newFilter = QString("tcp.options.mptcp.stream==%1").arg();
+//    selected_assoc = NULL;
+//    emit filterPackets(newFilter, false);
 }
 
 /*

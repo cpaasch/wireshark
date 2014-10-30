@@ -91,6 +91,7 @@
 #include "sctp_all_assocs_dialog.h"
 #include "sctp_assoc_analyse_dialog.h"
 #include "sctp_graph_dialog.h"
+#include "mptcp_all_connections_dialog.h"
 #include "sequence_dialog.h"
 #include "stats_tree_dialog.h"
 #include "tcp_stream_dialog.h"
@@ -827,7 +828,7 @@ void MainWindow::setMenusForSelectedPacket()
 #if 0
     gboolean is_ip = FALSE, is_tcp = FALSE, is_udp = FALSE, is_sctp = FALSE;
 #else
-    gboolean is_tcp = FALSE, is_sctp = FALSE, is_mptcp = TRUE;
+    gboolean is_tcp = FALSE, is_sctp = FALSE, is_mptcp = FALSE;
 #endif
 
 //    /* Making the menu context-sensitive allows for easier selection of the
@@ -1025,6 +1026,10 @@ void MainWindow::setMenusForSelectedPacket()
     main_ui_->actionSCTPShowAllAssociations->setEnabled(is_sctp);
     main_ui_->actionSCTPFilterThisAssociation->setEnabled(is_sctp);
 
+    if(is_tcp){
+        // TODO check it's MPTCP compliant as well
+        is_mptcp = TRUE;
+    }
     main_ui_->menuMPTCP->setEnabled(is_mptcp);
     main_ui_->actionMPTCPAnalyzeThisConnection->setEnabled(is_mptcp);
 //    while (list_entry != NULL) {
@@ -2047,24 +2052,24 @@ void MainWindow::on_actionMPTCPShowAllConnections_triggered()
 
 void MainWindow::openMPTCPAllAssocsDialog()
 {
-//    SCTPAllAssocsDialog *sctp_dialog = new SCTPAllAssocsDialog(this, cap_file_);
-//    connect(sctp_dialog, SIGNAL(filterPackets(QString&,bool)),
-//            this, SLOT(filterPackets(QString&,bool)));
-//    connect(this, SIGNAL(setCaptureFile(capture_file*)),
-//            sctp_dialog, SLOT(setCaptureFile(capture_file*)));
-//    sctp_dialog->fillTable();
+    MPTCPAllConnectionsDialog *mptcp_dialog = new MPTCPAllConnectionsDialog(this, cap_file_);
+    connect(mptcp_dialog, SIGNAL(filterPackets(QString&,bool)),
+            this, SLOT(filterPackets(QString&,bool)));
+    connect(this, SIGNAL(setCaptureFile(capture_file*)),
+            mptcp_dialog, SLOT(setCaptureFile(capture_file*)));
+    mptcp_dialog->fillTable();
 //
-//    if (sctp_dialog->isMinimized() == true)
-//    {
-//        sctp_dialog->showNormal();
-//    }
-//    else
-//    {
-//        sctp_dialog->show();
-//    }
+    if (mptcp_dialog->isMinimized() == true)
+    {
+        mptcp_dialog->showNormal();
+    }
+    else
+    {
+        mptcp_dialog->show();
+    }
 //
-//    sctp_dialog->raise();
-//    sctp_dialog->activateWindow();
+    mptcp_dialog->raise();
+    mptcp_dialog->activateWindow();
 }
 
 

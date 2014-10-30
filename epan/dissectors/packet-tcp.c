@@ -2770,13 +2770,13 @@ check_mptcp_token(gpointer key _U_, gpointer value, gpointer user_data)
     conversation_t* conv = (conversation_t*)value;
     struct tcp_analysis* analysis = (struct tcp_analysis*)conversation_get_proto_data(conv,proto_tcp);
 
-    printf("Token to find %u\n", token_to_find);
+//    printf("Token to find %u\n", token_to_find);
     if(analysis) {
         if(analysis->mptcp_analysis) {
 
             struct mptcp_analysis* mptcpd = analysis->mptcp_analysis;
 
-            printf("Comparing token: %u with %u and %u \n",token_to_find,mptcpd->token1,mptcpd->token2);
+//            printf("Comparing token: %u with %u and %u \n",token_to_find,mptcpd->token1,mptcpd->token2);
             return (mptcpd->token1 == token_to_find || mptcpd->token2 == token_to_find);
 //            DPRINT("test");
         }
@@ -2853,7 +2853,7 @@ const guint8* key
         result |= (digest_buf[i-1] << 8);
         result |= (digest_buf[i-2] << 16);
         result |= (digest_buf[i-3] << 24);
-    printf("result: %u\n",result);
+//    printf("result: %u\n",result);
 
 //    i = 19;
 //        result = (digest_buf[i] << 24);
@@ -2887,7 +2887,7 @@ find_mptcp_connection(guint32 token)
     conversation_t* conv;
 //    struct mptcp_analysis* mptcpd;
     // TODO pass on the token
-    printf("search for mptcp connection...\n");
+//    printf("search for mptcp connection...\n");
     conv = (conversation_t*)g_hash_table_find( get_conversation_hashtable_exact(), check_mptcp_token, (gpointer)&token);
 
 
@@ -3020,7 +3020,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                         //mptcpd->key1
                         mptcpd->token1 = generate_mptcp_token_from_key( temp );
                 // TODO used just for debug
-                printf("Token [%u] from key [%lu]",mptcpd->token1,mptcpd->key1);
+//                printf("Token [%u] from key [%lu]",mptcpd->token1,mptcpd->key1);
                 item = proto_tree_add_debug_text(mptcp_tree,"Token: %u",mptcpd->token1 );
 //            proto_tree_add_debug_text(tree, format)
             /**
@@ -3060,7 +3060,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                 temp = tvb_get_ptr(tvb,offset,8);
                 mptcpd->key2 = tvb_get_ntoh64(tvb,offset);
                 mptcpd->token2 = generate_mptcp_token_from_key( temp );
-                printf("token2 [%u]\n",mptcpd->token2);
+//                printf("token2 [%u]\n",mptcpd->token2);
                 item = proto_tree_add_debug_text(mptcp_tree,"Token: %u",mptcpd->token2 );
             }
             break;
@@ -3109,7 +3109,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
         //                mptcpd->master_stream=tcpd->stream;
 //                    }
                     if(!mptcpd) {
-                        printf("MP_JOIN, no key\n");
+//                        printf("MP_JOIN, no key\n");
 //                        conversation_t* conv;
 //                        struct mptcp_analysis* mptcpd;
                         // TODO now it should compare token with all conversations
@@ -3117,7 +3117,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                         // should save random nonce too
                         mptcpd = find_mptcp_connection(token);
                         if(mptcpd) {
-                            printf("===================\nFOUND a MATCH\n===================\n");
+                            printf("FOUND a MATCH\n");
                             // TODO assign the streams, add as a subflow etc...
 //                            g_print_err("Found Matching MPTCP connection !!");
                             tcpd->mptcp_analysis = mptcpd;
