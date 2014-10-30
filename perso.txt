@@ -6,6 +6,19 @@ When compiling, do make -C epan/dissectors
 === Tshark specifics ====
 proto.c:proto_registrar_dump_fields
 
+
+=== TODO ===
+- Match TCP streams that belong to an unknown MPTCP connection
+- check tokens depending on algorithm set
+- be able to export to CSV connections
+
+
+Montrer toutes les connections avec le débit, en fait traffic_table_dialog affiche en son sein
+un conversation_dialog.h
+Dans conversation_dialog.h, il faut enregistrer un:
+typedef struct register_ct register_ct_t;
+dans follow.h, ajouter MPTCP
+
 === To add a file ===
 check Makefile.am, et Makefile.common
 

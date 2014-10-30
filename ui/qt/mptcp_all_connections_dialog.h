@@ -50,8 +50,8 @@ public:
 
     void fillTable();
     // struct mptcp_analysis
-    sctp_assoc_info_t* getSelectedAssoc() { return selected_assoc; };
-    sctp_assoc_info_t* findSelectedAssoc();
+//    sctp_assoc_info_t* getSelectedAssoc() { return selected_assoc; };
+//    sctp_assoc_info_t* findSelectedAssoc();
 
 public slots:
     void setCaptureFile(capture_file *cf) { cap_file_ = cf; }
@@ -66,8 +66,9 @@ private slots:
 private:
     Ui::MPTCPAllConnectionsDialog *ui;
     capture_file *cap_file_;
-    sctp_allassocs_info_t *sctp_assocs;
-    sctp_assoc_info_t     *selected_assoc;
+    struct tcp_analysis *selected_con;
+//    sctp_allassocs_info_t *sctp_assocs;
+//    sctp_assoc_info_t     *selected_assoc;
 
 
 signals:

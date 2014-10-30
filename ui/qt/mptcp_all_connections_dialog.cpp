@@ -52,6 +52,7 @@ MPTCPAllConnectionsDialog::~MPTCPAllConnectionsDialog()
 
 void MPTCPAllConnectionsDialog::fillTable()
 {
+    // GSList / GLIST
     QString output;
     GList *list;
     sctp_assoc_info_t* assinfo;
@@ -72,7 +73,7 @@ void MPTCPAllConnectionsDialog::fillTable()
     numAssocs = 0;
     ui->assocList->setRowCount(g_list_length(sctp_assocs->assoc_info_list));
 
-    list = g_list_first(sctp_assocs->assoc_info_list);
+    list = g_slist_first(sctp_assocs->assoc_info_list);
 
     while (list) {
         assinfo = (sctp_assoc_info_t*)(list->data);
@@ -123,42 +124,47 @@ void MPTCPAllConnectionsDialog::getSelectedItem()
            selected_assoc, selected_assoc->assoc_id);
 }
 
+void MPTCPAllConnectionsDialog::on_showSubflows_clicked()
+{
+  // l'important c de pvr exporter en CSV cf conversation_dialog.h
+}
+
 void MPTCPAllConnectionsDialog::on_analyseButton_clicked()
 {
 
-    if (!selected_assoc) {
-        selected_assoc = findSelectedAssoc();
-        printf("on_analyseButton_clicked found assoc %p with id %d\n",
-               selected_assoc, selected_assoc->assoc_id);
-    }
-
-    SCTPAssocAnalyseDialog *sctp_analyse = new SCTPAssocAnalyseDialog(this, selected_assoc, cap_file_, this);
-    connect(sctp_analyse, SIGNAL(filterPackets(QString&,bool)),
-            parent(), SLOT(filterPackets(QString&,bool)));
-
-    if (sctp_analyse->isMinimized() == true)
-    {
-        sctp_analyse->showNormal();
-    }
-    else
-    {
-        sctp_analyse->show();
-    }
-
-    sctp_analyse->raise();
-    sctp_analyse->activateWindow();
+//    if (!selected_assoc) {
+//        selected_assoc = findSelectedAssoc();
+//        printf("on_analyseButton_clicked found assoc %p with id %d\n",
+//               selected_assoc, selected_assoc->assoc_id);
+//    }
+//
+//    SCTPAssocAnalyseDialog *sctp_analyse = new SCTPAssocAnalyseDialog(this, selected_assoc, cap_file_, this);
+//    connect(sctp_analyse, SIGNAL(filterPackets(QString&,bool)),
+//            parent(), SLOT(filterPackets(QString&,bool)));
+//
+//    if (sctp_analyse->isMinimized() == true)
+//    {
+//        sctp_analyse->showNormal();
+//    }
+//    else
+//    {
+//        sctp_analyse->show();
+//    }
+//
+//    sctp_analyse->raise();
+//    sctp_analyse->activateWindow();
 }
 
 void MPTCPAllConnectionsDialog::on_setFilterButton_clicked()
 {
-
+  guint32 stream_id = selected_master->mptcp_analysis->stream;
     if (!selected_assoc){
         selected_assoc = findSelectedAssoc();
         printf("on_setFilterButton_clicked found assoc %p with id %d\n",
                selected_assoc, selected_assoc->assoc_id);
     }
 
-    QString newFilter = QString("tcp.options.mptcp.stream==%1").arg(selected_assoc->assoc_id);
+    QString newFilter = QString("tcp.options.mptcp.stream==%1").arg();
     selected_assoc = NULL;
     emit filterPackets(newFilter, false);
 }
