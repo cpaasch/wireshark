@@ -148,7 +148,10 @@
 		<Unit filename="ui/io_graph_item.h" />
 		<Unit filename="ui/qt/conversation_dialog.cpp" />
 		<Unit filename="ui/qt/conversation_dialog.h" />
+		<Unit filename="ui/qt/follow_stream_dialog.cpp" />
 		<Unit filename="ui/qt/follow_stream_dialog.h" />
+		<Unit filename="ui/qt/follow_stream_text.cpp" />
+		<Unit filename="ui/qt/follow_stream_text.h" />
 		<Unit filename="ui/qt/main_window.cpp" />
 		<Unit filename="ui/qt/main_window.h" />
 		<Unit filename="ui/qt/main_window_slots.cpp" />
@@ -169,6 +172,10 @@
 		<Unit filename="ui/qt/ui_mptcp_all_connections_dialog.h" />
 		<Unit filename="ui/rtp_analysis.h" />
 		<Unit filename="ui/rtp_stream.h" />
+		<Unit filename="ui/tap-mptcp-stream.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui/tap-mptcp-stream.h" />
 		<Unit filename="ui/tap-rtp-common.c">
 			<Option compilerVar="CC" />
 		</Unit>

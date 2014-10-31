@@ -1,7 +1,16 @@
 ==== To Speed up compilation ===
-./configure --enable-setcap-install --without-gtk3 --with-qt 
-
+CFLAGS="-Wno-unused-but-set-variable" ./configure --enable-setcap-install --without-gtk3 --with-qt 
+CFLAGS="-Wno-unused-but-set-variable -g3 -O1" ./configure --enable-setcap-install --without-gtk3 --with-qt 
+--disable-warnings-as-errors
+./configure
 When compiling, do make -C epan/dissectors
+assuming it is a memory-related issue, it will help much if you compile with CFLAGS='-fsanitize=address -g3 -O1' CXXFLAGS=$CFLAGS LDFLAGS=-fsanitize=address
+
+=== To debug wireshark ====
+edit epan/dissectors/Makefile and take out the "-O2" (there should only be two instances of it) 
+make -C epan
+libtool --mode=execute gdb wireshark
+
 
 === Tshark specifics ====
 proto.c:proto_registrar_dump_fields
@@ -11,7 +20,7 @@ proto.c:proto_registrar_dump_fields
 - Match TCP streams that belong to an unknown MPTCP connection
 - check tokens depending on algorithm set
 - be able to export to CSV connections
-
+- be able to export list of subflows as a csv string of tcp stream ids (same as for)
 
 Montrer toutes les connections avec le débit, en fait traffic_table_dialog affiche en son sein
 un conversation_dialog.h
@@ -20,14 +29,22 @@ typedef struct register_ct register_ct_t;
 dans follow.h, ajouter MPTCP
 void TrafficTableDialog::copyAsCsv()
 
+void TrafficTableDialog::copyAsCsv() should be made generic
+
 === To add a file ===
 check Makefile.am, et Makefile.common
 
-
-
+=== Conversation Dialog  ===
+Chaque tab est créé via
+addTrafficTable(get_conversation_by_proto_id(conv_proto));
+add_conversation_table_data_with_conv_id
+ajouter 2 checkbox:
+-Afficher que les MPTCP
+-Masquer les sous flots (pas la peine de créer unen nouvelle fenetre)
 ==== To tests current code ===
 
 ./wireshark -r ~/pcaps/mptcp167.1407349533.bmL/dump_strip.pcap -Y "ipv6.src == 2001:41d0:a:38a8::1"
+
 
 Can do the test on :
 0,6,48358,25,subflowId,IPversion,sport,dport,saddr,daddr

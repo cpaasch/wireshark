@@ -69,6 +69,8 @@ typedef struct tcpheader {
 	address ip_src;
 	address ip_dst;
 
+    guint32 th_mptcpstream; /* this stream index field is included to help differentiate when address/port pairs are reused */
+
 	/* This is the absolute maximum we could find in TCP options (RFC2018, section 3) */
 	#define MAX_TCP_SACK_RANGES 4
 	guint8  num_sack_ranges;
@@ -150,6 +152,42 @@ struct tcp_multisegment_pdu {
 #define MSP_FLAGS_REASSEMBLE_ENTIRE_SEGMENT	0x00000001
 };
 
+/* MPTCP data specific to this subflow direction */
+typedef struct _mptcp_subflow_t {
+    guint32 nonce;  /* used only for MP_JOIN */
+//    gboolean master;
+    gboolean backup_flag;   /* */
+
+    guint8 addr_id;   /* address id */
+    /* TODO handle mappings */
+
+} mptcp_subflow_t;
+
+/* Only one standardised */
+typedef enum {
+MPTCP_HMAC_SHA1
+} mptcp_hmac_algorithm_t;
+
+/* */
+typedef struct _mptcp_flow_t {
+
+    mptcp_hmac_algorithm_t hmac_algo;   /* algo used to generate hmacs/tokens */
+    gboolean checksum_required;   /* checksum required */
+	guint32 base_seq;	/* base seq number (used by relative sequence numbers)
+				 * or 0 if not yet known.
+				 */
+	guint32 nextseq;	/* highest seen nextseq */
+
+    // master tcp stream id  ?
+//    guint8 version;  /* negociated mptcp version */
+    guint64 key;    /* */
+    guint32 token;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
+
+// TODO keep track of mappings
+// RTT
+//guint32 window;		/* should be equal to TCP window */
+} mptcp_flow_t;
+
 typedef struct _tcp_flow_t {
 	guint32 base_seq;	/* base seq number (used by relative sequence numbers)
 				 * or 0 if not yet known.
@@ -197,7 +235,7 @@ typedef struct _tcp_flow_t {
 	gchar *username;	/* Username of the local process */
 	gchar *command;         /* Local process name + path + args */
 
-
+    mptcp_subflow_t* mptcp; /* used only when mptcp enabled */
 } tcp_flow_t;
 
 
@@ -210,15 +248,23 @@ typedef struct _tcp_flow_t {
 //    guint64 recvkey;
 //}
 // TODO should be a list of them
-struct mptcp_join {
-    guint32 rand1;
-    guint32 rand2;
-};
+//struct mptcp_join {
+//    guint32 rand1;
+//    guint32 rand2;
+//};
 
 // structure, find
 struct mptcp_analysis {
-    // master tcp stream id  ?
-    guint16 mptcp_version;
+
+    mptcp_flow_t flow1;
+    mptcp_flow_t flow2;
+
+	/* These pointers are set by XXXXX get_tcp_conversation_data()
+	 * fwd point in the same direction as the current packet
+	 * and rev in the reverse direction
+	 */
+    mptcp_flow_t* fwd;
+    mptcp_flow_t* rev;
 
     /** Keep track of mptcp stream **/
     guint32 stream;
@@ -230,17 +276,13 @@ struct mptcp_analysis {
 	 * If the source is less than the destination, then stuff
 	 * sent from src is in ual2.
 	 */
-    guint64 key1;
-    guint64 key2;
+//    guint64 key1;
+//    guint64 key2;
 
-    /* sha1 digest of keys, truncated to 32 most significant bits */
-    guint32 token1;
-    guint32 token2;
 
-//    guint32 rand1;
-//    guint32 rand2;
+
 //    recvkey;
-    /** List subflows (tracks tcp stream id) **/
+    /* List subflows (tracks tcp stream id of tcp_analisys ?) */
     GSList* subflows;
 
     /** **/
