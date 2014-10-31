@@ -161,6 +161,7 @@ typedef struct _mptcp_subflow_t {
     guint8 addr_id;   /* address id */
     /* TODO handle mappings */
 
+    pendingmappings;
 } mptcp_subflow_t;
 
 /* Only one standardised */
@@ -168,11 +169,12 @@ typedef enum {
 MPTCP_HMAC_SHA1
 } mptcp_hmac_algorithm_t;
 
-/* */
+/* look a lot like _tcp_flow_t*/
 typedef struct _mptcp_flow_t {
 
     mptcp_hmac_algorithm_t hmac_algo;   /* algo used to generate hmacs/tokens */
     gboolean checksum_required;   /* checksum required */
+
 	guint32 base_seq;	/* base seq number (used by relative sequence numbers)
 				 * or 0 if not yet known.
 				 */
@@ -183,6 +185,8 @@ typedef struct _mptcp_flow_t {
     guint64 key;    /* */
     guint32 token;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
 
+    guint32 nextseq;	/* highest seen nextseq */
+    guint32 maxseqtobeacked; /* highest seen continuous seq number (without hole in the stream)  */
 // TODO keep track of mappings
 // RTT
 //guint32 window;		/* should be equal to TCP window */

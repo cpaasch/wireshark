@@ -3242,6 +3242,9 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
             break;
 
         case TCPOPT_MPTCP_DSS:
+            {
+//            mptcp_mapping_t mapping;
+
             offset += 1;
             flags = tvb_get_guint8(tvb, offset) & 0x1F;
             item = proto_tree_add_uint(mptcp_tree, hf_tcp_option_mptcp_flags, tvb,
@@ -3300,6 +3303,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                 proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_checksum, tvb, offset,
                             2, ENC_BIG_ENDIAN);
+            }
             }
             break;
 
