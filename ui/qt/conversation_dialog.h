@@ -78,6 +78,8 @@ private slots:
     void itemSelectionChanged();
     void on_nameResolutionCheckBox_toggled(bool checked);
     void on_displayFilterCheckBox_toggled(bool checked);
+    void on_hideMPTCPsubflowsCheckBox_toggled(bool checked);
+    void on_onlyMPTCPcheckBox_toggled(bool checked);
     void followStream();
     void graphTcp();
     void on_buttonBox_helpRequested();

@@ -15,6 +15,10 @@ libtool --mode=execute gdb wireshark
 === Tshark specifics ====
 proto.c:proto_registrar_dump_fields
 
+=== Conversations dialog ===
+Some buttons should only appear when TCP selected ?
+React on "Display subflows" (itemSelectionChanged), 
+just change filter
 
 === TODO ===
 - Match TCP streams that belong to an unknown MPTCP connection

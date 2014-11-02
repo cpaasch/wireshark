@@ -90,6 +90,14 @@ static gboolean tcp_check_checksum = FALSE;
   WindowScaling_13,
   WindowScaling_14
 };
+
+enum mptcp_dss_flag {
+DssFlag_DataAckPresent = 1,
+DssFlag_DataAckOfEightBytes = 1 << 1,
+DssFlag_MappingPresent = 1 << 2,
+DssFlag_DsnOfEightBytes =1 << 3,
+DssFlag_DataFinPresent = 1 << 4
+};
 static gint tcp_default_window_scaling = (gint)WindowScaling_NotKnown;
 
 
@@ -233,7 +241,7 @@ static int hf_tcp_option_mptcp_ipver = -1;
 static int hf_tcp_option_mptcp_ipv4 = -1;
 static int hf_tcp_option_mptcp_ipv6 = -1;
 static int hf_tcp_option_mptcp_port = -1;
-//static int hf_tcp_option_mptcp_tcp_seq_to_dsn = -1;
+static int hf_tcp_option_mptcp_tcp_seq_to_dsn = -1;
 static int hf_tcp_option_mptcp_analysis_duplicate_ack = -1;
 static int hf_tcp_option_mptcp_pending = -1;
 
@@ -335,6 +343,7 @@ static expert_field ei_tcp_checksum_ffff = EI_INIT;
 static expert_field ei_tcp_checksum_bad = EI_INIT;
 static expert_field ei_tcp_urgent_pointer_non_zero = EI_INIT;
 static expert_field ei_tcp_option_mptcp_reset_newkey = EI_INIT;
+static expert_field ei_tcp_option_mptcp_missing_mapping = EI_INIT;
 //static expert_field ei_tcp_option_mptcp_reset_recvkey = EI_INIT;
 
 /* Some protocols such as encrypted DCE/RPCoverHTTP have dependencies
@@ -712,6 +721,27 @@ init_mptcp_subflow(void)
 //{
 //
 //}
+//gint
+//(*GCompareFunc) (gconstpointer a,
+//                 gconstpointer b)
+gint
+compare_mptcp_mappings(gconstpointer a,gconstpointer b)
+{
+    const mptcp_mapping_t m1 = (mptcp_mapping_t*)a;
+    const mptcp_mapping_t m2 = (mptcp_mapping_t*)b;
+//    if(m1.ssn < m2.ssn){
+//        return -1;
+//    }
+    return (m1.ssn < m2.ssn);
+}
+
+// PAss on tree to add expert info ?
+static gboolean
+mptcp_subflow_add_mapping(mptcp_subflow_t *subflow,mptcp_mapping_t *mapping) {
+
+    mappings = g_slist_insert_sorted(subflow->mappings, mapping, compare_mptcp_mappings);
+    return TRUE;
+}
 
 ////packet_info *pinfo
 static struct mptcp_analysis *
@@ -3263,8 +3293,9 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                             tvb, offset, 1, ENC_BIG_ENDIAN);
             offset += 1;
 
-            if (flags & 1) {
-                if (flags & 2) {
+            /* DataAck */
+            if (flags & DssFlag_DataAckPresent) {
+                if (flags & DssFlag_DataAckOfEightBytes) {
                     proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_data_ack, tvb, offset,
                             8, ENC_BIG_ENDIAN);
@@ -3277,32 +3308,56 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                 }
             }
 
-            if (flags & 4) {
-                if (flags & 8) {
+            /* Mapping present */
+            if (flags & DssFlag_MappingPresent) {
+
+                mptcp_mapping_t *mapping = wmem_new0(wmem_file_scope(),mptcp_mapping_t);
+                guint64 dsn;
+                if (flags & DssFlag_DsnOfEightBytes) {
+
                     proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_data_seq_no, tvb, offset,
                             8, ENC_BIG_ENDIAN);
+                    dsn = tvb_get_ntoh64(tvb,offset);
                     offset += 8;
                 } else {
                     proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_data_seq_no, tvb, offset,
                             4, ENC_BIG_ENDIAN);
+                    dsn = tvb_get_ntohl(tvb,offset);
                     offset += 4;
                 }
+                mapping->dsn = dsn;
 
                 proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_subflow_seq_no, tvb, offset,
                             4, ENC_BIG_ENDIAN);
+                mapping->ssn = tvb_get_ntohl(tvb,offset);
                 offset += 4;
 
                 proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_data_lvl_len, tvb, offset,
                             2, ENC_BIG_ENDIAN);
+                mapping->length = tvb_get_ntos(tvb,offset);
                 offset += 2;
 
                 proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_checksum, tvb, offset,
                             2, ENC_BIG_ENDIAN);
+                // TODO check checksum (set as an option)
+
+                // Insert mapping
+                if(is_mptcp(tcpd)){
+                    //mptcp_tree,
+                    if(!mptcp_subflow_add_mapping(tcpd->fwd,mapping)){
+                        // add_info_format also exists
+//                        expert_add_info(pinfo, tf_syn, &ei_tcp_option_mptcp_incorrect_mapping);
+                    }
+//                    tcpd->fwd->
+                }
+                else {
+                    wmem_free(wmem_file_scope(), mapping);
+                }
             }
             }
             break;
@@ -4659,6 +4714,7 @@ dissect_tcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
     proto_item *tf_syn = NULL, *tf_fin = NULL, *tf_rst = NULL, *scaled_pi;
     conversation_t *conv=NULL;
     struct tcp_analysis *tcpd=NULL;
+    struct mptcp_analysis *mptcpd=NULL;
     struct tcp_per_packet_data_t *tcppd=NULL;
     proto_item *item;
     proto_tree *checksum_tree;
@@ -4744,6 +4800,7 @@ dissect_tcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
     /* find(or create if needed) the conversation for this tcp session */
     conv=find_or_create_conversation(pinfo);
     tcpd=get_tcp_conversation_data(conv,pinfo);
+    mptcpd=tcpd->mptcp_analysis;
 
     /* If this is a SYN packet, then check if its seq-nr is different
      * from the base_seq of the retrieved conversation. If this is the
@@ -4878,6 +4935,26 @@ dissect_tcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
         } else {
             proto_tree_add_uint(tcp_tree, hf_tcp_seq, tvb, offset + 4, 4, tcph->th_seq);
         }
+
+//        if(is_mptcp(mptcpd)) {
+//            // TODO map seq to DSN
+//            //
+//            guint64 dsn =
+//            if(!map_seq_to_dsn()){
+//                //! Add expert info
+//                expert_add_info(pinfo, pi, &ei_tcp_option_mptcp_missing_mapping);
+//            }
+//            else {
+//                if(tcp_relative_seq) {
+//                    dsn = dsn -
+//                    proto_tree_add_uint_format_value(tcp_tree, hf_tcp_seq, tvb, offset + 4, 4, tcph->th_seq, "%u    (DSN mapping)", tcph->th_seq);
+//                }
+//                else {
+//                    proto_tree_add_uint(tcp_tree, hf_tcp_option_mptcp_tcp_seq_to_dsn, tvb, offset + 4, 4, dsn);
+//                }
+//            }
+//
+//        }
     }
 
     if (tcph->th_hlen < TCPH_MIN_LEN) {
@@ -6254,6 +6331,7 @@ proto_register_tcp(void)
         { &ei_tcp_checksum_bad, { "tcp.checksum_bad.expert", PI_CHECKSUM, PI_ERROR, "Bad checksum", EXPFILL }},
         { &ei_tcp_urgent_pointer_non_zero, { "tcp.urgent_pointer.non_zero", PI_PROTOCOL, PI_NOTE, "The urgent pointer field is nonzero while the URG flag is not set", EXPFILL }},
         { &ei_tcp_option_mptcp_reset_newkey, { "tcp.options.mptcp.new_key", PI_PROTOCOL, PI_NOTE, "New key ", EXPFILL }}
+        { &ei_tcp_option_mptcp_reset_missing_mapping, { "tcp.options.mptcp.no_mapping", PI_PROTOCOL, PI_NOTE, "Could not map ssn to dsn", EXPFILL }}
 
     };
 

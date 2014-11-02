@@ -69,7 +69,7 @@ typedef struct tcpheader {
 	address ip_src;
 	address ip_dst;
 
-    guint32 th_mptcpstream; /* this stream index field is included to help differentiate when address/port pairs are reused */
+  guint32 th_mptcpstream; /* this stream index field is included to help differentiate when address/port pairs are reused */
 
 	/* This is the absolute maximum we could find in TCP options (RFC2018, section 3) */
 	#define MAX_TCP_SACK_RANGES 4
@@ -152,6 +152,13 @@ struct tcp_multisegment_pdu {
 #define MSP_FLAGS_REASSEMBLE_ENTIRE_SEGMENT	0x00000001
 };
 
+
+typedef struct _mptcp_mapping_t {
+guint64 dsn;  /* Data Sequence Number */
+guint32 ssn;  /* Data Sequence Number */
+guint16 length; /* Data level length */
+} mptcp_mapping_t;
+
 /* MPTCP data specific to this subflow direction */
 typedef struct _mptcp_subflow_t {
     guint32 nonce;  /* used only for MP_JOIN */
@@ -161,7 +168,7 @@ typedef struct _mptcp_subflow_t {
     guint8 addr_id;   /* address id */
     /* TODO handle mappings */
 
-    pendingmappings;
+    GSList mappings; /* pending mappings */
 } mptcp_subflow_t;
 
 /* Only one standardised */
