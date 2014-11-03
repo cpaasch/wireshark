@@ -153,7 +153,9 @@ struct tcp_multisegment_pdu {
 };
 
 
+/* can't use GSlist, this is too specific */
 typedef struct _mptcp_mapping_t {
+struct _mptcp_mapping_t *next;
 guint64 dsn;  /* Data Sequence Number */
 guint32 ssn;  /* Data Sequence Number */
 guint16 length; /* Data level length */
@@ -168,7 +170,9 @@ typedef struct _mptcp_subflow_t {
     guint8 addr_id;   /* address id */
     /* TODO handle mappings */
 
-    GSList mappings; /* pending mappings */
+    mptcp_mapping_t *rcvd_mappings; /* pending mappings */
+
+    /* we are not interested in tracking sent mappings yet */
 } mptcp_subflow_t;
 
 /* Only one standardised */
@@ -178,9 +182,12 @@ MPTCP_HMAC_SHA1
 
 /* look a lot like _tcp_flow_t*/
 typedef struct _mptcp_flow_t {
+    //
+//    hmac_algo;   /* algo used to generate hmacs/tokens */
+//    gboolean checksum_required;   /* checksum required */
 
-    mptcp_hmac_algorithm_t hmac_algo;   /* algo used to generate hmacs/tokens */
-    gboolean checksum_required;   /* checksum required */
+    /* flags exchanged between hosts during 3WHS. Gives checksum/extensiblity/hmac information */
+    guint8 flags;
 
 	guint32 base_seq;	/* base seq number (used by relative sequence numbers)
 				 * or 0 if not yet known.
@@ -192,7 +199,6 @@ typedef struct _mptcp_flow_t {
     guint64 key;    /* */
     guint32 token;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
 
-    guint32 nextseq;	/* highest seen nextseq */
     guint32 maxseqtobeacked; /* highest seen continuous seq number (without hole in the stream)  */
 // TODO keep track of mappings
 // RTT
@@ -279,6 +285,12 @@ struct mptcp_analysis {
 
     /** Keep track of mptcp stream **/
     guint32 stream;
+
+    /* hmac decided after negociation */
+    mptcp_hmac_algorithm_t hmac_algo;
+    gboolean checksum_required;   /* checksum required */
+
+    guint8 version; /* MPTCP version (4bits)*/
     // 8 octets
     /*
 	 * If the source is greater than the destination, then stuff

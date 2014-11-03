@@ -6,6 +6,12 @@ CFLAGS="-Wno-unused-but-set-variable -g3 -O1" CXXFLAGS=$CFLAGS ./configure --ena
 When compiling, do make -C epan/dissectors
 assuming it is a memory-related issue, it will help much if you compile with CFLAGS='-fsanitize=address -g3 -O1' CXXFLAGS=$CFLAGS LDFLAGS=-fsanitize=address
 
+
+=== display seq nb relative to mptcp ===
+tcp.stream == 0
+le DSS de base doit être : 1671049450 mapped to TCP seq 1
+col_prepend_fence_fstr
+
 === To debug wireshark ====
 edit epan/dissectors/Makefile and take out the "-O2" (there should only be two instances of it) 
 make -C epan
@@ -21,10 +27,10 @@ React on "Display subflows" (itemSelectionChanged),
 just change filter
 
 === TODO ===
-- Match TCP streams that belong to an unknown MPTCP connection
 - check tokens depending on algorithm set
 - be able to export to CSV connections
 - be able to export list of subflows as a csv string of tcp stream ids (same as for)
+- sometimes tries to map numbers it hsould'nt try to map (during the syn for isntance)
 
 Montrer toutes les connections avec le débit, en fait traffic_table_dialog affiche en son sein
 un conversation_dialog.h

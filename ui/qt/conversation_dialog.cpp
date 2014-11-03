@@ -280,35 +280,6 @@ void ConversationDialog::itemSelectionChanged()
 void ConversationDialog::on_nameResolutionCheckBox_toggled(bool checked)
 {
     Q_UNUSED(checked);
-
-     if (!filter_.isEmpty()) {
-        filter = filter_.toUtf8().constData();
-     }
-}
-
-void ConversationDialog::on_hideMPTCPsubflowsCheckBox_toggled(bool checked)
-{
-    Q_UNUSED(checked);
-    // TODO update filter
-    updateWidgets();
-}
-//on_onlyMPTCPcheckBox_toggled
-
-
-void ConversationDialog::on_hideMPTCPsubflowsCheckBox_toggled(bool checked)
-{
-    Q_UNUSED(checked);
-    updateWidgets();
-}
-
-void ConversationDialog::updateFilter()
-{
-    for (int i = 0; i < trafficTableTabWidget()->count(); i++) {
-        set_tap_dfilter(trafficTableTabWidget()->widget(i), filter);
-    }
-
-    cf_retap_packets(cap_file_);
-    // TODO necessary ?
     updateWidgets();
 }
 
@@ -325,7 +296,11 @@ void ConversationDialog::on_displayFilterCheckBox_toggled(bool checked)
         filter = filter_.toUtf8().constData();
     }
 
-    updateFilter(filter);
+    for (int i = 0; i < trafficTableTabWidget()->count(); i++) {
+        set_tap_dfilter(trafficTableTabWidget()->widget(i), filter);
+    }
+
+    cf_retap_packets(cap_file_);
 }
 
 void ConversationDialog::on_buttonBox_helpRequested()
