@@ -171,7 +171,7 @@ typedef struct _mptcp_subflow_t {
     /* TODO handle mappings */
 
     mptcp_mapping_t *rcvd_mappings; /* pending mappings */
-
+    mptcp_mapping_t *infinite_mapping;  /* if datalength == 0 */
     /* we are not interested in tracking sent mappings yet */
 } mptcp_subflow_t;
 
@@ -195,7 +195,7 @@ typedef struct _mptcp_flow_t {
 	guint32 nextseq;	/* highest seen nextseq */
 
     // master tcp stream id  ?
-//    guint8 version;  /* negociated mptcp version */
+    guint8 version;  /* negociated mptcp version */
     guint64 key;    /* */
     guint32 token;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
 
@@ -308,8 +308,11 @@ struct mptcp_analysis {
     /* List subflows (tracks tcp stream id of tcp_analisys ?) */
     GSList* subflows;
 
-    /** **/
+    /* identifier of the tcp stream that saw the initial 3WHS with MP_CAPABLE option */
     guint32 master_stream;
+
+    /* UNused for now ? true if connection not yet confirmed or oculd not find master ? */
+    gboolean pending;
 };
 
 struct tcp_analysis {
