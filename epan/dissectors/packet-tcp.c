@@ -727,7 +727,8 @@ init_mptcp_subflow(void)
     mptcp_subflow_t *sf = wmem_new0(wmem_file_scope(), mptcp_subflow_t);
     sf->nonce = 0;
     sf->backup_flag=FALSE;
-    sf->rcvd_mappings=NULL;
+    sf->sent_mappings=NULL;
+//    sf->sent_mappings=NULL;
     sf->infinite_mapping=NULL;
 
     return sf;
@@ -770,8 +771,9 @@ static mptcp_mapping_t*
 mptcp_subflow_find_mapping(mptcp_subflow_t *subflow, guint32 ssn) {
     mptcp_mapping_t* cur;
 
-    for(cur=subflow->rcvd_mappings; cur != NULL; cur=cur->next) {
-        if(cur->ssn <= ssn && ((cur->ssn+cur->length) > ssn) )
+    for(cur=subflow->sent_mappings; cur != NULL; cur=cur->next) {
+//        printf("Checking ssn %d against mapping [%d-%d]\n", ssn, cur->ssn, TAIL_SSN(cur) );
+        if(cur->ssn <= ssn && ( TAIL_SSN(cur) >= ssn) )
             return cur;
     }
     return NULL;
@@ -787,7 +789,10 @@ mptcp_flow_t* fwd,
 // mptcp_analysis
 mptcp_subflow_t *subflow, mptcp_mapping_t *mapping) {
 
+
     mptcp_mapping_t *temp=NULL;
+
+//    printf("Adding mapping\n");
     /* check if it is an infinite mapping */
     if(mapping->length == 0) {
         subflow->infinite_mapping = mapping;
@@ -809,22 +814,22 @@ mptcp_subflow_t *subflow, mptcp_mapping_t *mapping) {
 //    }
 
     /* if list empty, set base_dsn */
-    if( subflow->rcvd_mappings == NULL) {
+    if( subflow->sent_mappings== NULL) {
         /* first mapping of the connection received */
         if(fwd->base_seq == 0){
             fwd->base_seq = mapping->dsn;
         }
         mapping->next=NULL;
-//        subflow->rcvd_mappings = mapping;
+//        subflow->sent_mappings= mapping;
     }
     else {
-//        subflow->rcvd_mappings = g_slist_insert_sorted(subflow->rcvd_mappings, mapping, compare_mptcp_mappings);
+//        subflow->sent_mappings= g_slist_insert_sorted(subflow->rcvd_mappings, mapping, compare_mptcp_mappings);
 // TODO check mappings overlap ?
-        mapping->next = subflow->rcvd_mappings;
+        mapping->next = subflow->sent_mappings;
 
     }
 
-    subflow->rcvd_mappings = mapping;
+    subflow->sent_mappings= mapping;
 
     if(subflow->infinite_mapping) {
 //        wmem_free(wmem_file_scope(),subflow->infinite_mapping);
@@ -856,7 +861,7 @@ static gboolean
 mptcp_map_seq_to_dsn(mptcp_subflow_t *subflow,guint32 ssn, guint64 *dsn) {
 
 //    DISSECTOR_ASSERT(dsn != NULL);
-
+//    printf("Trying to find mapping for ssn %d\n",ssn);
     //!
     mptcp_mapping_t *mapping = mptcp_subflow_find_mapping(subflow,ssn);
     if(mapping){
@@ -905,12 +910,17 @@ struct tcp_analysis *tcpd)
         mptcpd->flow1.version=0;
     //    mptcpd->flow1.checksum_required=FALSE;
         mptcpd->flow1.token = 0;
+        mptcpd->flow1.base_seq = 0;
+        mptcpd->flow1.nextseq = 0;
 
         mptcpd->flow2.key = 0;
         mptcpd->flow2.flags = 0;
     //    mptcpd->flow2.checksum_required=FALSE;
         mptcpd->flow2.token=0;
         mptcpd->flow2.version=0;
+        mptcpd->flow2.base_seq = 0;
+        mptcpd->flow2.nextseq = 0;
+
         mptcpd->master_stream=tcpd->stream;
         mptcpd->hmac_algo=MPTCP_HMAC_SHA1;
 //    }
@@ -1969,7 +1979,7 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
         return;
     }
 
-    tcph->th_mptcpstream = tcpd->mptcp_analysis->stream;
+//    tcph->th_mptcpstream = tcpd->mptcp_analysis->stream;
 
     item=proto_tree_add_item(parent_tree, hf_mptcp_analysis, tvb, 0, 0, ENC_NA);
     PROTO_ITEM_SET_GENERATED(item);
@@ -1978,39 +1988,67 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
 
     //proto_item_get_parent
 
+    /* set field with mptcp stream */
+    if(mptcpd->master_stream == tcpd->stream) {
+        item = proto_tree_add_boolean(tree, hf_tcp_option_mptcp_master, tvb, 0,
+                                     0, TRUE );
+    }
+    else {
+        item = proto_tree_add_boolean_format_value(tree, hf_tcp_option_mptcp_master, tvb, 0,
+                                     0, FALSE, "False; Master is tcp stream with id %u",mptcpd->master_stream );
+    }
 
+    PROTO_ITEM_SET_GENERATED(item);
 
 //        if(is_mptcp(mptcpd)) {
 //            // TODO map seq to DSN
 //            //
 //            guint64 dsn;  //!< value to save to
     if(tcp_analyze_seq) {
-        if( ((tcph->th_flags & (TH_SYN)) == 0) && (!mptcp_map_seq_to_dsn(tcpd->fwd->mptcp,tcph->th_seq,&dsn))){
+        guint32 rel_ssn = tcph->th_seq;
+//        guint32 rel_ack = tcph->th_ack;
+        // need to recover relative ssn to find mapping
+        if(!tcp_relative_seq){
+            rel_ssn -= tcpd->fwd->base_seq;
+        }
+
+        /* if during a 3WHS */
+        if( (tcph->th_flags & (TH_SYN)) != 0){
+            // skip
+
+        }
+        //tcph
+        else if(!mptcp_map_seq_to_dsn(tcpd->fwd->mptcp,rel_ssn,&dsn)){
+//            printf("th_seq: %u \n",tcph->th_seq);
+//            printf("nb of mappings: %p\n ", (tcpd->fwd->mptcp->rcvd_mappings) );
             //! Add expert info
             expert_add_info(pinfo, tree, &ei_mptcp_analysis_missing_mapping);
         }
+        /* DSN mapping found */
         else {
             // TODO place it better
             if(tcp_relative_seq) {
                 dsn = dsn - mptcpd->fwd->base_seq;
-
+//printf("TOTO tcp falgs %d\n",tcph->th_flags);
                 item=
                 proto_tree_add_uint64_format_value(tree, hf_tcp_option_mptcp_tcp_seq_to_dsn, tvb, 0, 0, dsn, "%lu  (relative DSN mapping)", dsn);
+//                proto_tree_add_uint64(tree, hf_tcp_option_mptcp_tcp_seq_to_dsn, tvb, 0,0, dsn);
+//                proto_tree_add_uint64(tree, hf_tcp_option_mptcp_tcp_seq_to_dsn, tvb, 0,0, 42);
             }
             else {
+//            printf("TOTO 3 tcp falgs %d\n",tcph->th_flags);
     // TODO fix offset rename into analysis
                 item =
                  proto_tree_add_uint64(tree, hf_tcp_option_mptcp_tcp_seq_to_dsn, tvb, 0,0, dsn);
+//                 proto_tree_add_uint64(tree, hf_tcp_option_mptcp_tcp_seq_to_dsn, tvb, 0,0, 42);
 
             }
             PROTO_ITEM_SET_GENERATED(item);
         }
     }
 
-    /* set field with mptcp stream */
-    item = proto_tree_add_boolean(tree, hf_tcp_option_mptcp_master, tvb, 0,
-                                     0, (mptcpd->master_stream == tcpd->stream) );
-    PROTO_ITEM_SET_GENERATED(item);
+
+
 
 
     item = proto_tree_add_uint(tree, hf_tcp_option_mptcp_stream, tvb, 0, 0, mptcpd->stream);
@@ -3095,16 +3133,7 @@ dissect_tcpopt_timestamp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
 
 
 
-/*
-gboolean            (*GHRFunc)                          (gpointer key,
-                                                         gpointer value,
-                                                         gpointer user_data);
-                                                         */
-/** TODO will look for a matching mptcp_analysis !
-// _U_ <=> Unused
-user_data is a token
-TODO should be able to handle different hash types
-**/
+/**/
 static gboolean
 check_mptcp_token(gpointer key _U_, gpointer value, gpointer user_data)
 {
@@ -3132,31 +3161,29 @@ check_mptcp_token(gpointer key _U_, gpointer value, gpointer user_data)
     return FALSE;
 }
 
-/**   This section specifies the behavior of MP_JOIN using the HMAC-SHA1
-   algorithm.  An MP_JOIN option is present in the SYN, SYN/ACK, and ACK
-   of the three-way handshake, although in each case with a different
-   format.
 
-   In the first MP_JOIN on the SYN packet, illustrated in Figure 5, the
-   initiator sends a token, random number, and address ID.
+/*
+The initial data sequence number on an MPTCP connection is generated
+   from the key.
+*/
+static guint64
+generate_mptcp_isdn_from_key(mptcp_hmac_algorithm_t algo, guint64 key){
 
-   The token is used to identify the MPTCP connection and is a
-   cryptographic hash of the receiver's key, as exchanged in the initial
-   MP_CAPABLE handshake (Section 3.1).  In this specification, the
-   tokens presented in this option are generated by the SHA-1 ([4],
-   [15]) algorithm, truncated to the most significant 32 bits.  The
-   token included in the MP_JOIN option is the token that the receiver
-   of the packet uses to identify this connection; i.e., Host A will
+    return 0;
+}
 
-
-
-   send Token-B (which is generated from Key-B).  Note that the hash
-   generation algorithm can be overridden by the choice of cryptographic
-   handshake algorithm, as defined in Section 3.1.
+/**   In this specification, with only the SHA-1 algorithm
+   (bit "H") specified and selected, the token MUST be a truncated (most
+   significant 32 bits) SHA-1 hash ([4], [15]) of the key.  A different,
+   64-bit truncation (the least significant 64 bits) of the SHA-1 hash
+   of the key MUST be used as the initial data sequence number.  Note
+   that the key MUST be hashed in network byte order.  Also note that
+   the "least significant" bits MUST be the rightmost bits of the SHA-1
+   digest, as per [4].
     */
 static guint32
 generate_mptcp_token_from_key(
-//guint64 key
+mptcp_hmac_algorithm_t algo,
 const guint8* key
 )
 {
@@ -3170,15 +3197,23 @@ const guint8* key
     // la clé a l'air de passer correctement, dans le bon ordre
 //    printf("key [%lu] to hash\n",key);
     //(guint8*)
+    // some use "tvb_get_ptr" cf packet-cms.c
     sha1_update(&sha1_ctx, key,8);
 // 20 octests
     sha1_finish(&sha1_ctx, digest_buf);
     // truncated to the 32 most significant bits
+    // could be used to convert key to token
 //    guint32_to_str_buf()
 //    str_to_val()
+    //bytestring_to_str
 //    for(i = 0; i < ; ++i) {
     i = 3;
+//    ()
     //ntoh
+//    g_ntohl()
+//    tvb_new_real_data()
+//    tvb_new_real_data()
+//    tvb_new
         result = (digest_buf[i] << 0);
         result |= (digest_buf[i-1] << 8);
         result |= (digest_buf[i-2] << 16);
@@ -3348,7 +3383,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
 
                 /* this is costly so don't do it too often . Move it to finalize */
                 if (!PINFO_FD_VISITED(pinfo)) {
-                    mptcpd->fwd->token = generate_mptcp_token_from_key( temp );
+                    mptcpd->fwd->token = generate_mptcp_token_from_key( MPTCP_HMAC_SHA1,  temp );
                 }
                 item = proto_tree_add_uint(mptcp_tree,
                         hf_tcp_option_mptcp_associated_token, tvb, offset, 0, mptcpd->fwd->token);
@@ -3393,7 +3428,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                 // get bytes
 //                temp = tvb_get_ptr(tvb,offset,8);
                 mptcpd->fwd->key = tvb_get_ntoh64(tvb,offset);
-                mptcpd->fwd->token = generate_mptcp_token_from_key(tvb_get_ptr(tvb,offset,8));
+                mptcpd->fwd->token = generate_mptcp_token_from_key(MPTCP_HMAC_SHA1, tvb_get_ptr(tvb,offset,8));
 //                printf("token2 [%u]\n",mptcpd->token2);
 //                item = proto_tree_add_debug_text(mptcp_tree,"Token: %u",mptcpd->token2 );
             }
@@ -3437,14 +3472,10 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
 
                         if(!mptcpd) {
 
-    //                        printf("MP_JOIN, no key\n");
                             mptcpd = find_mptcp_connection(token);
                             if(mptcpd) {
-                                printf("FOUND a MATCH\n");
-//                                add_subflow_to_mptcp_connection(mptcpd,tcpd);
+//                                printf("FOUND a MATCH\n");
                                 add_subflow_to_mptcp_connection(mptcpd,tcpd);
-                                // This CRASHES but why ??
-//                                tcpd->mptcp_analysis=mptcpd;
                             }
                         }
 //                    }
@@ -3539,39 +3570,71 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
 
             /* DataAck */
             if (flags & DssFlag_DataAckPresent) {
+                guint8 fieldLength = 4;
+                guint64 dataAck = 0;
+//                char format[] = "%lu  (relative DSN mapping)";
+                // TODO always
                 if (flags & DssFlag_DataAckOfEightBytes) {
-                    proto_tree_add_item(mptcp_tree,
-                            hf_tcp_option_mptcp_data_ack, tvb, offset,
-                            8, ENC_BIG_ENDIAN);
-                    offset += 8;
+                    dataAck = tvb_get_ntoh64(tvb,offset);
+//                    proto_tree_add_item(mptcp_tree,
+//                            hf_tcp_option_mptcp_data_ack, tvb, offset,
+//                            8, ENC_BIG_ENDIAN);
+                    fieldLength = 8;
                 } else {
-                    proto_tree_add_item(mptcp_tree,
-                            hf_tcp_option_mptcp_data_ack, tvb, offset,
-                            4, ENC_BIG_ENDIAN);
-                    offset += 4;
+                    dataAck = tvb_get_ntohl(tvb,offset);
+//                    proto_tree_add_item(mptcp_tree,
+//                            hf_tcp_option_mptcp_data_ack, tvb, offset,
+//                            4, ENC_BIG_ENDIAN);
+                    fieldLength = 4;
                 }
+
+                if(tcp_relative_seq && mptcpd){
+                    dataAck -= mptcpd->rev->base_seq;
+                    proto_tree_add_uint64_format_value(mptcp_tree, hf_tcp_option_mptcp_data_ack, tvb, offset, fieldLength, dataAck,  "%lu  (relative DSN mapping)", dataAck);
+                }
+                else {
+//                    format = "%lu";
+                    proto_tree_add_uint64(mptcp_tree, hf_tcp_option_mptcp_data_ack, tvb, offset, fieldLength, dataAck);
+                }
+
+                offset += fieldLength;
+
             }
 
             /* Mapping present */
             if (flags & DssFlag_MappingPresent) {
 
+                guint8 fieldLength = 4;
                 mptcp_mapping_t *mapping = wmem_new0(wmem_file_scope(),mptcp_mapping_t);
                 guint64 dsn;
                 if (flags & DssFlag_DsnOfEightBytes) {
 
-                    proto_tree_add_item(mptcp_tree,
-                            hf_tcp_option_mptcp_data_seq_no, tvb, offset,
-                            8, ENC_BIG_ENDIAN);
+//                    proto_tree_add_item(mptcp_tree,
+//                            hf_tcp_option_mptcp_data_seq_no, tvb, offset,
+//                            8, ENC_BIG_ENDIAN);
                     dsn = tvb_get_ntoh64(tvb,offset);
-                    offset += 8;
+                    fieldLength = 8;
                 } else {
-                    proto_tree_add_item(mptcp_tree,
-                            hf_tcp_option_mptcp_data_seq_no, tvb, offset,
-                            4, ENC_BIG_ENDIAN);
+//                    proto_tree_add_item(mptcp_tree,
+//                            hf_tcp_option_mptcp_data_seq_no, tvb, offset,
+//                            4, ENC_BIG_ENDIAN);
                     dsn = tvb_get_ntohl(tvb,offset);
-                    offset += 4;
+                    fieldLength = 4;
                 }
+
                 mapping->dsn = dsn;
+                if(tcp_relative_seq && mptcpd){
+
+                    dsn -= mptcpd->fwd->base_seq;
+                    proto_tree_add_uint64_format_value(mptcp_tree, hf_tcp_option_mptcp_data_ack, tvb, offset, fieldLength, dsn,  "%lu  (relative DSN mapping)", dsn);
+                }
+                else {
+//                    format = "%lu";
+                    proto_tree_add_uint64(mptcp_tree, hf_tcp_option_mptcp_data_ack, tvb, offset, fieldLength, dsn);
+                }
+
+                offset += fieldLength;
+
 
                 proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_subflow_seq_no, tvb, offset,
@@ -3589,7 +3652,8 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                             hf_tcp_option_mptcp_checksum, tvb, offset,
                             2, ENC_BIG_ENDIAN);
                 // TODO check checksum (set as an option)
-
+// if tcp_relative_seq
+//base_seq
                 item = proto_tree_add_uint64(mptcp_tree, hf_tcp_option_mptcp_tailssn, tvb, offset, 0, TAIL_SSN(mapping) );
                 PROTO_ITEM_SET_GENERATED(item);
                 item = proto_tree_add_uint64(mptcp_tree, hf_tcp_option_mptcp_taildsn, tvb, offset, 0, TAIL_DSN(mapping) );
@@ -4904,6 +4968,7 @@ dissect_tcp_payload(tvbuff_t *tvb, packet_info *pinfo, int offset, guint32 seq,
     }
 }
 
+
 //static const char*
 //mptcp_algo_to_str(const mptcp_hmac_algorithm_t algo) {
 //    static const char algoStr[][5] = { "HMAC" };
@@ -4912,21 +4977,43 @@ dissect_tcp_payload(tvbuff_t *tvb, packet_info *pinfo, int offset, guint32 seq,
 
 /* TODO make sure that the other end confirmed the MP_CAPABLE option
 else drop the mptcpd
+return false if fallback to TCP ?
+MP_CAPABLE option in the third packet of the TCP handshake.  If this
+   option is not present, the connection SHOULD fall back to regular
+   TCP,
 */
-static void
+static gboolean
 finalize_mptcp_connection(struct tcp_analysis* tcpd) {
     struct mptcp_analysis *mptcpd = tcpd->mptcp_analysis;
-
+    guint8 res;
+    mptcp_hmac_algorithm_t algo;
 //    #define GET_MPTCP_VERSION(flag) flags & 0x0F
     #define GET_CHECKSUM(flow) ( (flow.flags) & 0x80)
+    #define GET_HMAC_ALGOS(flow) ( (flow.flags) & ~0xC0)
     //!
     mptcpd->version = MIN(mptcpd->flow1.version, mptcpd->flow2.version);
-    mptcpd->checksum_required= GET_CHECKSUM(mptcpd->flow1) & GET_CHECKSUM(mptcpd->flow2);
+    /*if either host requires the use of checksums, checksums MUST be used*/
+    mptcpd->checksum_required= GET_CHECKSUM(mptcpd->flow1) || GET_CHECKSUM(mptcpd->flow2);
+
+    res = GET_HMAC_ALGOS(mptcpd->flow1) & GET_HMAC_ALGOS(mptcpd->flow2);
+
+    // TODO or if more than 1 algo
+    if( res == 0) {
+        return FALSE;
+    }
 
     //! hmac_algo
-
+//    algo = reinterpret_cast<mptcp_hmac_algorithm_t>(algo);
+    /* The initiator creates a proposal setting a bit for each algorithm it supports to 1
+The responder responds with only 1 bit set -- this is the chosen algorithm */
     //! Generate the token now (need str)
+    // pass on the chosen algorithm
 //    mptcpd->flow1.token = generate_mptcp_token_from_key( );
+
+    #undef GET_CHECKSUM
+    #undef GET_HMAC_ALGOS
+
+    return TRUE;
 }
 
 static const char *
@@ -5611,16 +5698,25 @@ dissect_tcp(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 
     /* TODO provide a flag */
     if(tcp_analyze_mptcp) {
-
+//        guint32 use_seq = tcph->th_seq;
+//        guint32 use_ack = tcph->th_ack;
+//        /* May need to recover absolute values here... */
+//        if (tcp_relative_seq) {
+//            use_seq += tcpd->fwd->base_seq;
+//            if (tcph->th_flags & TH_ACK) {
+//                use_ack += tcpd->rev->base_seq;
+//            }
+//        }
         mptcp_print_analysis(pinfo, tvb, tcp_tree, tcpd,
 //         use_seq, use_ack
             tcph
          );
 
     //proto_item_get_parent
-//        tcph->th_mptcpstream = tcpd->mptcp_analysis->stream;
-
+//
+        tcph->th_mptcpstream = tcpd->mptcp_analysis->stream;
     }
+
 
     /* Skip over header + options */
     offset += tcph->th_hlen;
@@ -6071,7 +6167,7 @@ proto_register_tcp(void)
             "This is a duplicate Data ACK", HFILL }},
 
         { &hf_tcp_option_mptcp_stream,
-        { "Multipath TCP Stream index",       "tcp.options.mptcp.stream", FT_UINT32, BASE_DEC, NULL, 0x0,
+        { "Multipath TCP Stream index",       "mptcp.stream", FT_UINT32, BASE_DEC, NULL, 0x0,
             NULL, HFILL }},
 
         { &hf_tcp_option_mptcp_master,
@@ -6167,7 +6263,7 @@ proto_register_tcp(void)
             BASE_DEC, NULL, 0x0, NULL, HFILL}},
 
         { &hf_tcp_option_mptcp_tailssn,
-          { "Multipath TCP tail Subflow Sequence Number", "tcp.options.mptcp.tail_dsn", FT_UINT64,
+          { "Multipath TCP tail Subflow Sequence Number", "tcp.options.mptcp.taildsn", FT_UINT64,
             BASE_DEC, NULL, 0x0, NULL, HFILL}},
 
         { &hf_tcp_option_mptcp_subflow_seq_no,
@@ -6179,7 +6275,7 @@ proto_register_tcp(void)
             BASE_DEC, NULL, 0x0, NULL, HFILL}},
 
         { &hf_tcp_option_mptcp_tcp_seq_to_dsn,
-          { "Multipath TCP SSN to DSN", "tcp.mptcp.options.seq_to_dsn", FT_UINT64,
+          { "Multipath TCP SSN to DSN", "tcp.options.mptcp.seq2dsn", FT_UINT64,
             BASE_DEC, NULL, 0x0, NULL, HFILL}},
 
         { &hf_tcp_option_mptcp_data_lvl_len,

@@ -170,7 +170,7 @@ typedef struct _mptcp_subflow_t {
     guint8 addr_id;   /* address id */
     /* TODO handle mappings */
 
-    mptcp_mapping_t *rcvd_mappings; /* pending mappings */
+    mptcp_mapping_t *sent_mappings; /* pending mappings */
     mptcp_mapping_t *infinite_mapping;  /* if datalength == 0 */
     /* we are not interested in tracking sent mappings yet */
 } mptcp_subflow_t;
