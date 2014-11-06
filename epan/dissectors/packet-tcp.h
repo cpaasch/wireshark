@@ -198,6 +198,7 @@ typedef struct _mptcp_flow_t {
     guint8 version;  /* negociated mptcp version */
     guint64 key;    /* */
     guint32 token;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
+    guint64 isdn;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
 
     guint32 maxseqtobeacked; /* highest seen continuous seq number (without hole in the stream)  */
 // TODO keep track of mappings
