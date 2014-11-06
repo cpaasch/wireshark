@@ -1,6 +1,6 @@
 ==== To Speed up compilation ===
 CFLAGS="-Wno-unused-but-set-variable" ./configure --enable-setcap-install --without-gtk3 --with-qt  --disable-warnings-as-errors
-CFLAGS="-Wno-unused-but-set-variable -g2 -O1" CXXFLAGS=$CFLAGS ./configure --enable-setcap-install --without-gtk3 --with-qt --disable-warnings-as-errors
+CFLAGS="-Wno-unused-but-set-variable -g3 -O1" CXXFLAGS=$CFLAGS ./configure --enable-setcap-install --without-gtk3 --with-qt --disable-warnings-as-errors
 ./configure
 When compiling, do make -C epan/dissectors
 assuming it is a memory-related issue, it will help much if you compile with CFLAGS='-fsanitize=address -g3 -O1' CXXFLAGS=$CFLAGS LDFLAGS=-fsanitize=address
@@ -56,3 +56,10 @@ ajouter 2 checkbox:
 
 expected isdn : 2020798786
 mptcp.analysis
+
+<Lekensteyn> teto_: use cmake
+<Lekensteyn> actually, you can use autotools too
+<Lekensteyn> autotools, ./autogen.sh && mkdir build1 && cd build1 && ../configure .... && make
+<Lekensteyn> repeat for build2
+<Lekensteyn> cmake: cd build1 && cmake .. && make
+<Lekensteyn> if you have two different code bases, you could copy the repo
