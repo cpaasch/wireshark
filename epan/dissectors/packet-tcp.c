@@ -255,7 +255,7 @@ static int hf_tcp_option_mptcp_pending = -1;
 static int hf_tcp_option_mptcp_tailssn = -1;
 static int hf_tcp_option_mptcp_taildsn = -1;
 static int hf_tcp_option_mptcp_expected_token = -1;
-static int hf_tcp_option_mptcp_expected_isdn = -1;
+static int hf_tcp_option_mptcp_expected_initial_dack = -1;
 
 
 static int hf_tcp_option_fast_open = -1;
@@ -911,7 +911,7 @@ struct tcp_analysis *tcpd)
         mptcpd->flow1.version=0;
     //    mptcpd->flow1.checksum_required=FALSE;
         mptcpd->flow1.token = 0;
-        mptcpd->flow1.isdn = 0;
+        mptcpd->flow1.idsn = 0;
         mptcpd->flow1.base_seq = 0;
         mptcpd->flow1.nextseq = 0;
 
@@ -922,7 +922,7 @@ struct tcp_analysis *tcpd)
         mptcpd->flow2.version=0;
         mptcpd->flow2.base_seq = 0;
         mptcpd->flow2.nextseq = 0;
-        mptcpd->flow2.isdn = 0;
+        mptcpd->flow2.idsn = 0;
 
         mptcpd->master_stream=tcpd->stream;
         mptcpd->hmac_algo=MPTCP_HMAC_SHA1;
@@ -3184,6 +3184,18 @@ The initial data sequence number on an MPTCP connection is generated
    the "least significant" bits MUST be the rightmost bits of the SHA-1
    digest, as per [4].
 
+   The selection of the authentication algorithm also impacts the
+   algorithm used to generate the token and the initial data sequence
+   number (IDSN).  In this specification, with only the SHA-1 algorithm
+   (bit "H") specified and selected, the token MUST be a truncated (most
+   significant 32 bits) SHA-1 hash ([4], [15]) of the key.  A different,
+   64-bit truncation (the least significant 64 bits) of the SHA-1 hash
+   of the key MUST be used as the initial data sequence number.  Note
+   that the key MUST be hashed in network byte order.  Also note that
+   the "least significant" bits MUST be the rightmost bits of the SHA-1
+   digest, as per [4].  Future specifications of the use of the crypto
+   bits may choose to specify different algorithms for token and IDSN
+   generation.
 */
 static
 //void
@@ -3193,7 +3205,7 @@ mptcp_hmac_algorithm_t algo _U_,
 const guint8* key,
 //const guint64 key,
 guint32 *token,
-guint64 *isdn
+guint64 *idsn
 )
 {
 //    guint32 result = 0;
@@ -3208,11 +3220,8 @@ guint64 *isdn
     // la clé a l'air de passer correctement, dans le bon ordre
 //    printf("key [%lu] to hash\n",key);
     //(guint8*)
-    // some use "tvb_get_ptr" cf packet-cms.c
     sha1_update(&sha1_ctx, key,8);
-// 20 octests
     sha1_finish(&sha1_ctx, digest_buf);
-//    sha1_finish(&sha1_ctx, tvb_get_ptr(tvb,0) );
     // truncated to the 32 most significant bits
     // could be used to convert key to token
 //    guint32_to_str_buf()
@@ -3228,29 +3237,8 @@ guint64 *isdn
     // THis one is good
     *token = tvb_get_ntohl(tvb,0);
 
-//    *isdn = tvb_get_ntoh64(tvb, SHA1_BUFFER_SIZE-8);
-//    printf("result: %lu\n",*isdn);
-//    *isdn = tvb_get_ntoh64(tvb, SHA1_BUFFER_SIZE);
-//    printf("result2: %lu\n",*isdn);
-    *isdn = tvb_get_bits64(tvb, SHA1_BUFFER_SIZE-8, 64, ENC_BIG_ENDIAN);
-//    printf("result3: %lu\n",*isdn);
-//
-//    *isdn = tvb_get_bits64(tvb, SHA1_BUFFER_SIZE-8, 64, ENC_LITTLE_ENDIAN);
-//    printf("result4: %lu\n",*isdn);
-    //ntoh
-//    g_ntohl()
-//    tvb_new_real_data()
-//    tvb_new_real_data()
-//    tvb_new
-//GUINT64_TO_LE
-//GUINT32_TO_BE
-//    digest_buf[0]
-//        result = (digest_buf[i] << 0);
-//        result |= (digest_buf[i-1] << 8);
-//        result |= (digest_buf[i-2] << 16);
-//        result |= (digest_buf[i-3] << 24);
-
-
+    *idsn = tvb_get_ntoh64(tvb, SHA1_BUFFER_SIZE-8);
+//        printf("result1: %lu to %u\n",*idsn, (guint32)*idsn );
 
 //			proto_tree_add_text(udvm_tree, message_tvb, 0, -1,
 //					"Calculated SHA-1: %s",
@@ -3350,7 +3338,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
     switch (subtype) {
         case TCPOPT_MPTCP_MP_CAPABLE:
             {
-//            guint64 isdn = 0;
+//            guint64 idsn = 0;
 
             // TODO check if it is a retransmission first to check if exchanged keys change
             /* shall be freed if left dangling ? */
@@ -3427,7 +3415,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
 
 //                    guint32 token = 0;
 
-                    generate_mptcp_token_from_key( MPTCP_HMAC_SHA1,  temp , &mptcpd->fwd->token, & mptcpd->fwd->isdn);
+                    generate_mptcp_token_from_key( MPTCP_HMAC_SHA1,  temp , &mptcpd->fwd->token, & mptcpd->fwd->idsn);
 //                    item = proto_tree_add_uint(mptcp_tree,
 //                        hf_tcp_option_mptcp_expected_token, tvb, offset, 0, token);
 //                    item = proto_tree_add_text(mptcp_tree, tvb, 0,0, "Token: %u", token );
@@ -3440,9 +3428,14 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                 PROTO_ITEM_SET_GENERATED(item);
 
                 //mptcpd->fwd->token
-                item = proto_tree_add_uint64(mptcp_tree,
-                        hf_tcp_option_mptcp_expected_isdn, tvb, offset, 0, mptcpd->fwd->isdn);
+                item = proto_tree_add_uint64_format(mptcp_tree,
+                        hf_tcp_option_mptcp_expected_initial_dack, tvb, offset, 0, mptcpd->fwd->idsn + 1, "Expected initial DACK (64bits): %lu",mptcpd->fwd->idsn + 1);
                 PROTO_ITEM_SET_GENERATED(item);
+
+                item = proto_tree_add_uint64_format(mptcp_tree,
+                        hf_tcp_option_mptcp_expected_initial_dack, tvb, offset, 0, ( (guint32)mptcpd->fwd->idsn + 1), "Expected initial DACK (32bits): %u", ( (guint32)mptcpd->fwd->idsn + 1) );
+                PROTO_ITEM_SET_GENERATED(item);
+
                 // TODO used just for debug
 //                printf("Token [%u] from key [%lu]",mptcpd->token1,mptcpd->key1);
 
@@ -3478,7 +3471,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
             /* ACK */
             if (optlen == 20) {
 //                const guint8* temp = 0;
-//                guint64 isdn;
+//                guint64 idsn;
 //                guint32 token;
                 proto_tree_add_item(mptcp_tree,
                         hf_tcp_option_mptcp_recv_key, tvb, offset, 8, ENC_BIG_ENDIAN);
@@ -3486,7 +3479,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                 // get bytes
 //                temp = tvb_get_ptr(tvb,offset,8);
 //                mptcpd->fwd->key = tvb_get_ntoh64(tvb,offset);
-//                mptcpd->fwd->token = generate_mptcp_token_from_key(MPTCP_HMAC_SHA1, tvb_get_ptr(tvb,offset,8), & token, &isdn);
+//                mptcpd->fwd->token = generate_mptcp_token_from_key(MPTCP_HMAC_SHA1, tvb_get_ptr(tvb,offset,8), & token, &idsn);
 //                item = proto_tree_add_uint(mptcp_tree,
 //                        hf_tcp_option_mptcp_expected_token, tvb, offset, 0, mptcpd->fwd->token);
 //                PROTO_ITEM_SET_GENERATED(item);
@@ -6336,8 +6329,8 @@ proto_register_tcp(void)
           { "Multipath TCP Subflow token from key", "tcp.options.mptcp.expected_token", FT_UINT32,
             BASE_DEC, NULL, 0x0, NULL, HFILL}},
 
-        { &hf_tcp_option_mptcp_expected_isdn,
-          { "Multipath TCP Subflow expected isdn generated from key", "tcp.options.mptcp.expected_isdn", FT_UINT64,
+        { &hf_tcp_option_mptcp_expected_initial_dack,
+          { "Multipath TCP Subflow expected idsn generated from key", "tcp.options.mptcp.expected_isdn", FT_UINT64,
             BASE_DEC, NULL, 0x0, NULL, HFILL}},
 
         { &hf_tcp_option_mptcp_tcp_seq_to_dsn,
