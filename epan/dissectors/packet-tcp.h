@@ -186,24 +186,29 @@ typedef struct _mptcp_flow_t {
 //    hmac_algo;   /* algo used to generate hmacs/tokens */
 //    gboolean checksum_required;   /* checksum required */
 
+    /// TODO caser un tcp_flow_t et caster en tcp_flow_t
+    // quand on veut acceder aux champs necessaires ?
+//    tcp_flow_t
+
     /* flags exchanged between hosts during 3WHS. Gives checksum/extensiblity/hmac information */
     guint8 flags;
 
-	guint32 base_seq;	/* base seq number (used by relative sequence numbers)
+	guint64 base_seq;	/* base seq number (used by relative sequence numbers)
 				 * or 0 if not yet known.
 				 */
-	guint32 nextseq;	/* highest seen nextseq */
+	guint64 nextseq;	/* highest seen nextseq */
 
     // master tcp stream id  ?
     guint8 version;  /* negociated mptcp version */
     guint64 key;    /* */
     guint32 token;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
-    guint64 idsn;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
+//    guint64 idsn;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
 
     guint32 maxseqtobeacked; /* highest seen continuous seq number (without hole in the stream)  */
 // TODO keep track of mappings
 // RTT
 //guint32 window;		/* should be equal to TCP window */
+    guint32 fin;		/* frame number of the final FIN */
 } mptcp_flow_t;
 
 typedef struct _tcp_flow_t {
