@@ -54,6 +54,25 @@ extern "C" {
 #define LE_SEQ(x, y) ((gint32)((x) - (y)) <= 0)
 #define EQ_SEQ(x, y) (x) == (y)
 
+/* mh as in mptcp header */
+typedef struct mptcpheader {
+
+    gboolean mh_mpc;   /* true if seen an mp_capable option */
+    gboolean mh_join;   /* true if seen an mp_join option */
+    gboolean mh_dss;   /* true if seen a dss */
+
+    guint8  mh_flags;   /* dss flags */
+	guint64 mh_ssn; /* Subflow Sequence Number */
+	guint32 mh_dsn; /* Data Sequence Number */
+//	guint32 mh_dsn; /* Data Sequence Number */
+	guint64 mh_ack; /* */
+//	guint64 mh_ack;
+
+	/* mapping */
+
+    guint32 mh_stream; /* this stream index field is included to help differentiate when address/port pairs are reused */
+} mptcp_info_t;
+
 /* the tcp header structure, passed to tap listeners */
 typedef struct tcpheader {
 	guint32 th_seq;
@@ -69,14 +88,17 @@ typedef struct tcpheader {
 	address ip_src;
 	address ip_dst;
 
-  guint32 th_mptcpstream; /* this stream index field is included to help differentiate when address/port pairs are reused */
-
 	/* This is the absolute maximum we could find in TCP options (RFC2018, section 3) */
 	#define MAX_TCP_SACK_RANGES 4
 	guint8  num_sack_ranges;
 	guint32 sack_left_edge[MAX_TCP_SACK_RANGES];
 	guint32 sack_right_edge[MAX_TCP_SACK_RANGES];
+
+	/* header for TCP option mptcp */
+	mptcp_info_t *th_mptcp;
 } tcp_info_t;
+
+
 
 /*
  * Private data passed from the TCP dissector to subdissectors. Passed to the
@@ -204,7 +226,7 @@ typedef struct _mptcp_flow_t {
     guint32 token;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
 //    guint64 idsn;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
 
-    guint32 maxseqtobeacked; /* highest seen continuous seq number (without hole in the stream)  */
+    guint64 maxseqtobeacked; /* highest seen continuous seq number (without hole in the stream)  */
 // TODO keep track of mappings
 // RTT
 //guint32 window;		/* should be equal to TCP window */
