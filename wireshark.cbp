@@ -57,6 +57,12 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="debug/epan/wslua/register_wslua.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="debug/epan/wslua/taps_wslua.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="epan/column-info.h" />
 		<Unit filename="epan/column-utils.c">
 			<Option compilerVar="CC" />
@@ -117,7 +123,12 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="epan/tvbuff.h" />
+		<Unit filename="epan/wslua/make-taps.pl" />
+		<Unit filename="epan/wslua/taps" />
 		<Unit filename="file.h" />
+		<Unit filename="release/epan/wslua/taps_wslua.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="tshark.c">
 			<Option compilerVar="CC" />
 		</Unit>

@@ -62,11 +62,12 @@ typedef struct mptcpheader {
     gboolean mh_dss;   /* true if seen a dss */
 
     guint8  mh_flags;   /* dss flags */
-	guint64 mh_ssn; /* Subflow Sequence Number */
-	guint32 mh_dsn; /* Data Sequence Number */
+	guint32 mh_ssn; /* Subflow Sequence Number */
+	guint64 mh_rawdsn; /* Data Sequence Number */
 //	guint32 mh_dsn; /* Data Sequence Number */
-	guint64 mh_ack; /* */
+	guint64 mh_rawack; /* rename into rawack/rawdsn */
 //	guint64 mh_ack;
+    guint16 mh_length;  /* mapping length */
 
 	/* mapping */
 
@@ -178,7 +179,7 @@ struct tcp_multisegment_pdu {
 /* can't use GSlist, this is too specific */
 typedef struct _mptcp_mapping_t {
 struct _mptcp_mapping_t *next;
-guint64 dsn;  /* Data Sequence Number */
+guint64 abs_dsn;  /* todo rename to absolute Data Sequence Number */
 guint32 ssn;  /* Data Sequence Number */
 guint16 length; /* Data level length */
 } mptcp_mapping_t;
@@ -215,7 +216,9 @@ typedef struct _mptcp_flow_t {
     /* flags exchanged between hosts during 3WHS. Gives checksum/extensiblity/hmac information */
     guint8 flags;
 
-	guint64 base_seq;	/* base seq number (used by relative sequence numbers)
+//    gboolean enable_dsn_tracking;   /* */
+// ou bien faire 2 guint32
+	guint64 base_dsn;	/* base data seq number (used by relative sequence numbers)
 				 * or 0 if not yet known.
 				 */
 	guint64 nextseq;	/* highest seen nextseq */
@@ -223,14 +226,21 @@ typedef struct _mptcp_flow_t {
     // master tcp stream id  ?
     guint8 version;  /* negociated mptcp version */
     guint64 key;    /* */
-    guint32 token;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
-//    guint64 idsn;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
+    guint32 token;  /* expected token sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
+//    guint64 expected_token;  /* sha1 digest of keys, truncated to 32 most significant bits derived from key. Stored to speed up subflow/MPTCP connection mapping */
+    guint64 expected_idsn;  /* sha1 digest of keys, truncated to 64 LSB */
+	guint32 nextseqframe;	/* frame number for segment with highest
+				 * sequence number
+				 */
 
     guint64 maxseqtobeacked; /* highest seen continuous seq number (without hole in the stream)  */
 // TODO keep track of mappings
 // RTT
 //guint32 window;		/* should be equal to TCP window */
     guint32 fin;		/* frame number of the final FIN */
+
+    wmem_tree_t *dsn_wraps; /* records frames numbers for which 32bits DSN wrapped.
+                                Indexed by frame number */
 } mptcp_flow_t;
 
 typedef struct _tcp_flow_t {
@@ -298,6 +308,16 @@ typedef struct _tcp_flow_t {
 //    guint32 rand2;
 //};
 
+typedef enum {
+//MPTCP_CON_SYN,
+//MPTCP_CON_SYNACK,
+//MPTCP_CON_ACK,
+MPTCP_CON_3WHS, /* bootstrapping */
+MPTCP_CON_ABORTED,  /* if does not see MPTCP option in 3WHS ACK or cheksum fails etc...*/
+MPTCP_CON_PENDING,
+MPTCP_CON_INCORRECT,
+MPTCP_CON_OK
+} mptcp_connection_state_t;
 // structure, find
 struct mptcp_analysis {
 
@@ -319,28 +339,18 @@ struct mptcp_analysis {
     gboolean checksum_required;   /* checksum required */
 
     guint8 version; /* MPTCP version (4bits)*/
-    // 8 octets
-    /*
-	 * If the source is greater than the destination, then stuff
-	 * sent from src is in ual1.
-	 *
-	 * If the source is less than the destination, then stuff
-	 * sent from src is in ual2.
-	 */
-//    guint64 key1;
-//    guint64 key2;
 
-
-
-//    recvkey;
-    /* List subflows (tracks tcp stream id of tcp_analisys ?) */
+    /* List subflows (tracks tcp stream id or tcp_analisys ?) */
     GSList* subflows;
 
     /* identifier of the tcp stream that saw the initial 3WHS with MP_CAPABLE option */
     guint32 master_stream;
 
-    /* UNused for now ? true if connection not yet confirmed or oculd not find master ? */
-    gboolean pending;
+    /* UNused for now ? true if connection not yet confirmed or oculd not find master ?
+    TODO use a flag. Negociating ? Broken ? Up ? Aborted ?
+    */
+//    gboolean pending;
+    mptcp_connection_state_t state;
 };
 
 struct tcp_analysis {
