@@ -216,8 +216,11 @@ typedef struct _mptcp_flow_t {
     /* flags exchanged between hosts during 3WHS. Gives checksum/extensiblity/hmac information */
     guint8 flags;
 
-//    gboolean enable_dsn_tracking;   /* */
-// ou bien faire 2 guint32
+//    gboolean enable_dsn_tracking;
+  /* TODO check mptcp_get_data_seq_64
+
+*/
+// ou bien faire 2 guint32 highorder_basedsn;
 	guint64 base_dsn;	/* base data seq number (used by relative sequence numbers)
 				 * or 0 if not yet known.
 				 */

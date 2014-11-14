@@ -30,6 +30,11 @@ just change filter
 - be able to export to CSV connections
 - be able to export list of subflows as a csv string of tcp stream ids (same as for)
 - sometimes tries to map numbers it hsould'nt try to map (during the syn for isntance)
+- for each connection set some flag like:
+--- may_miss_some_flows (If some holes detected in the DSN, it may have been sent on a non captured interface)
+--- has_seen_all_dsns (rather then the previous one)
+--- seen master / associated_to_master
+
 
 Montrer toutes les connections avec le débit, en fait traffic_table_dialog affiche en son sein
 un conversation_dialog.h
