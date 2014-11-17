@@ -36,6 +36,10 @@ just change filter
 --- seen master / associated_to_master
 
 
+=== BUGS ===
+- in legacy tcp, if SYN/ACK with seq nb 0 then the relative seq nb becomes (unsigned)0-1 while it is ok in the syn direction
+
+
 Montrer toutes les connections avec le débit, en fait traffic_table_dialog affiche en son sein
 un conversation_dialog.h
 Dans conversation_dialog.h, il faut enregistrer un:
@@ -52,9 +56,13 @@ check Makefile.am, et Makefile.common
 Chaque tab est créé via
 addTrafficTable(get_conversation_by_proto_id(conv_proto));
 add_conversation_table_data_with_conv_id
-ajouter 2 checkbox:
+add 2 checkboxes:
 -Afficher que les MPTCP
 -Masquer les sous flots (pas la peine de créer unen nouvelle fenetre)
+
+
+
+
 ==== To tests current code ===
 
 ./wireshark -r ~/pcaps/mptcp167.1407349533.bmL/dump_strip.pcap -Y "tcp.options.mptcp.stream"
