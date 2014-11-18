@@ -908,8 +908,19 @@ mptcp_subflow_t *subflow, mptcp_mapping_t *mapping) {
 
 /* TODO take into account infinite mapping
 */
-static gboolean
-mptcp_map_seq_to_dsn( mptcp_subflow_t *subflow, guint32 rel_ssn, guint64 *abs_dsn) {
+static guint64
+mptcp_map_seq_to_dsn( mptcp_subflow_t *subflow, guint32 rel_ssn) {
+
+//    if(mapping){
+//        *abs_dsn =
+    return mapping->abs_dsn + (ssn-mapping->ssn) +1;
+//        return TRUE;
+//    }
+//    return FALSE;
+}
+
+static mptcp_mapping_t*
+mptcp_map_seq_to_mapping( mptcp_subflow_t *subflow, guint32 rel_ssn) {
 
     mptcp_mapping_t *mapping = NULL;
 //    DISSECTOR_ASSERT(dsn != NULL);
@@ -924,12 +935,7 @@ mptcp_map_seq_to_dsn( mptcp_subflow_t *subflow, guint32 rel_ssn, guint64 *abs_ds
         mapping = mptcp_subflow_find_mapping(subflow,rel_ssn);
     }
 
-
-    if(mapping){
-        *abs_dsn = mapping->abs_dsn + (ssn-mapping->ssn) +1;
-        return TRUE;
-    }
-    return FALSE;
+    return mapping;
 }
 
 // TODO
@@ -2124,6 +2130,7 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
                 mapping->abs_dsn = abs_dsn;
                 mapping->length = mph->mh_length;
                 mapping->ssn = mph->mh_ssn;
+                mapping->ts = pinfo->rel_ts;
 
 //                mapping->ssn = mph->mh_ssn;
                 // TODO check for infinite mappings first
@@ -2172,17 +2179,27 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
     // TODO during MP_CAPABLE exchange only
     if(mph->mh_mpc == FALSE && mph->mh_join == FALSE) {
         guint64 abs_dsn=0;
+        mptcp_mapping_t *mapping = mptcp_map_seq_to_mapping(tcpd->fwd->mptcp,rel_ssn);
 
 
         /* gets absolute dsn if mapping exists */
-        if( !mptcp_map_seq_to_dsn(tcpd->fwd->mptcp,rel_ssn,&abs_dsn )){
+
+        if( !mapping ){
     //            printf("th_seq: %u \n",tcph->th_seq);
                 //! Add expert info
                 expert_add_info(pinfo, tree, &ei_mptcp_analysis_missing_mapping);
         }
         /* DSN mapping found */
         else {
-        //
+
+            /* check if mapping existed at the time packet was sent */
+            if(pinfo->rel_ts < mapping->ts) {
+                //! mapping was not received at the time
+                expert_add_info(pinfo, tree, &ei_mptcp_analysis_missing_mapping);
+            }
+            abs_dsn = mptcp_map_seq_to_dsn(mapping,rel_ssn);
+
+
 //            proto_tree_add_uint64_format_value(tree, hf_tcp_option_mptcp_tcp_seq_to_dsn, tvb, 0, 0, abs_dsn ,"%lu (Absolute dsn)",abs_dsn );
             // TODO place it better
             if(tcp_relative_seq) {

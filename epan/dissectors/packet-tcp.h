@@ -175,6 +175,9 @@ struct tcp_multisegment_pdu {
 #define MSP_FLAGS_REASSEMBLE_ENTIRE_SEGMENT	0x00000001
 };
 
+struct mptcp_acked {
+
+};
 
 /* can't use GSlist, this is too specific */
 typedef struct _mptcp_mapping_t {
@@ -182,6 +185,8 @@ struct _mptcp_mapping_t *next;
 guint64 abs_dsn;  /* todo rename to absolute Data Sequence Number */
 guint32 ssn;  /* Data Sequence Number */
 guint16 length; /* Data level length */
+//guint32 frame;
+nstime_t ts;    /* arrival time */
 } mptcp_mapping_t;
 
 /* MPTCP data specific to this subflow direction */
