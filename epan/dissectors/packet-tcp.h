@@ -60,6 +60,8 @@ typedef struct mptcpheader {
     gboolean mh_mpc;   /* true if seen an mp_capable option */
     gboolean mh_join;   /* true if seen an mp_join option */
     gboolean mh_dss;   /* true if seen a dss */
+    gboolean mh_fastclose;   /* true if seen a fastclose */
+//    gboolean mh_fail;   /* true if seen an MP_FAIL */
 
     guint8  mh_flags;   /* dss flags */
 	guint32 mh_ssn; /* Subflow Sequence Number */
@@ -69,6 +71,10 @@ typedef struct mptcpheader {
 //	guint64 mh_ack;
     guint16 mh_length;  /* mapping length */
 
+    guint64 mh_recvkey; /* recvkey */
+    guint64 mh_sendkey; /* recvkey */
+
+    guint32 mh_token; /* recvkey */
 	/* mapping */
 
     guint32 mh_stream; /* this stream index field is included to help differentiate when address/port pairs are reused */
@@ -183,7 +189,7 @@ struct mptcp_acked {
 typedef struct _mptcp_mapping_t {
 struct _mptcp_mapping_t *next;
 guint64 abs_dsn;  /* todo rename to absolute Data Sequence Number */
-guint32 ssn;  /* Data Sequence Number */
+guint32 ssn;  /* Data Sequence Number (relative by definition) */
 guint16 length; /* Data level length */
 //guint32 frame;
 nstime_t ts;    /* arrival time */
@@ -200,7 +206,9 @@ typedef struct _mptcp_subflow_t {
 
     mptcp_mapping_t *sent_mappings; /* pending mappings */
     mptcp_mapping_t *infinite_mapping;  /* if datalength == 0 */
-    /* we are not interested in tracking sent mappings yet */
+    guint32 frame_num_im;   /* frame nb from which connection fell
+                                back to infinite mapping */
+    /* we are not interested in tracking rcvd mappings yet */
 } mptcp_subflow_t;
 
 /* Only one standardised */
@@ -316,20 +324,28 @@ typedef struct _tcp_flow_t {
 //    guint32 rand2;
 //};
 
+
+
 typedef enum {
 //MPTCP_CON_SYN,
 //MPTCP_CON_SYNACK,
 //MPTCP_CON_ACK,
 MPTCP_CON_3WHS, /* bootstrapping */
-MPTCP_CON_ABORTED,  /* if does not see MPTCP option in 3WHS ACK or cheksum fails etc...*/
+MPTCP_CON_ABORTED,  /* if does not see MPTCP option in 3WHS ACK
+                        or cheksum fails or see MP_FAIL
+                        TODO register frame nb where it happens
+                        etc...*/
 MPTCP_CON_PENDING,
 MPTCP_CON_INCORRECT,
 MPTCP_CON_OK
 } mptcp_connection_state_t;
+
 // structure, find
 struct mptcp_analysis {
 
-    mptcp_flow_t flow1;
+	guint16 flags; /* see MPTCP_A_* in packet-tcp.c */
+
+    mptcp_flow_t flow1; /* TODO rename into meta_flow */
     mptcp_flow_t flow2;
 
 	/* These pointers are set by XXXXX get_tcp_conversation_data()
@@ -339,7 +355,7 @@ struct mptcp_analysis {
     mptcp_flow_t* fwd;
     mptcp_flow_t* rev;
 
-    /** Keep track of mptcp stream **/
+    /* TODO rename to mp_stream Keep track of mptcp stream */
     guint32 stream;
 
     /* hmac decided after negociation */
@@ -351,10 +367,15 @@ struct mptcp_analysis {
     /* List subflows (tracks tcp stream id or tcp_analisys ?) */
     GSList* subflows;
 
-    /* identifier of the tcp stream that saw the initial 3WHS with MP_CAPABLE option */
-    guint32 master_stream;
+    /* identifier of the tcp stream that saw the initial 3WHS with MP_CAPABLE option
+    if equal to 0 than it is pending
+    TODO rename into master ?
+    */
+//    guint32 master_stream;
+    struct tcp_analysis *master_stream;
 
-    /* UNused for now ? true if connection not yet confirmed or oculd not find master ?
+    /* UNused for now ?
+    true if connection not yet confirmed or oculd not find master ?
     TODO use a flag. Negociating ? Broken ? Up ? Aborted ?
     */
 //    gboolean pending;

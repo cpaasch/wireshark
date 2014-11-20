@@ -1,6 +1,8 @@
 ==== To Speed up compilation ===
 CFLAGS="-Wno-unused-but-set-variable" ../configure --enable-setcap-install --without-gtk3 --with-qt  --disable-warnings-as-errors
-CFLAGS="-Wno-unused-but-set-variable -g3 -O1" CXXFLAGS=$CFLAGS ../configure --enable-setcap-install --without-gtk3 --with-qt --disable-warnings-as-errors
+CFLAGS="-Wno-unused-but-set-variable -g3 -O0" CXXFLAGS=$CFLAGS ../configure --enable-setcap-install --without-gtk3 --with-qt --disable-warnings-as-errors --enable-mergecap=no --enable-airpcap=no --enable-rawshark=no --enable-editcap=no --with-pcap-remote=no
+
+
 ./configure
 When compiling, do make -C epan/dissectors
 assuming it is a memory-related issue, it will help much if you compile with CFLAGS='-fsanitize=address -g3 -O1' CXXFLAGS=$CFLAGS LDFLAGS=-fsanitize=address
@@ -37,7 +39,7 @@ just change filter
 
 
 === BUGS ===
-- in legacy tcp, if SYN/ACK with seq nb 0 then the relative seq nb becomes (unsigned)0-1 while it is ok in the syn direction
+- in legacy tcp, if SYN/ACK with seq nb 0 then the relative seq nb becomes (unsigned)0-1 while it is ok in the syn direction (I sent a fix upstream)
 
 
 Montrer toutes les connections avec le débit, en fait traffic_table_dialog affiche en son sein
@@ -61,7 +63,14 @@ add 2 checkboxes:
 -Masquer les sous flots (pas la peine de créer unen nouvelle fenetre)
 
 
-
+=== Move MPTCP to a tap ? ===
+register_tap("mptcp")
+register_tap_listener
+After each individual packet has been completely dissected and all
+dissectors have returned, all the tap listeners that have been flagged
+to receive tap data during the dissection of the frame will be called in
+sequence.
+There may be several TCP segments in a same frame (ie encapsulation )
 
 ==== To tests current code ===
 
