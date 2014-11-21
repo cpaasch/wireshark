@@ -64,15 +64,15 @@ typedef struct mptcpheader {
 //    gboolean mh_fail;   /* true if seen an MP_FAIL */
 
     guint8  mh_flags;   /* dss flags */
-	guint32 mh_ssn; /* Subflow Sequence Number */
-	guint64 mh_rawdsn; /* Data Sequence Number */
+    guint32 mh_ssn; /* Subflow Sequence Number */
+    guint64 mh_rawdsn; /* Data Sequence Number */
 //	guint32 mh_dsn; /* Data Sequence Number */
-	guint64 mh_rawack; /* rename into rawack/rawdsn */
+    guint64 mh_rawack; /* rename into rawack/rawdsn */
 //	guint64 mh_ack;
     guint16 mh_length;  /* mapping length */
 
-    guint64 mh_recvkey; /* recvkey */
-    guint64 mh_sendkey; /* recvkey */
+    guint64 mh_key; /* recvkey */
+//    guint64 mh_sendkey; /* recvkey */
 
     guint32 mh_token; /* recvkey */
 	/* mapping */
@@ -331,10 +331,10 @@ typedef enum {
 //MPTCP_CON_SYNACK,
 //MPTCP_CON_ACK,
 MPTCP_CON_3WHS, /* bootstrapping */
-MPTCP_CON_ABORTED,  /* if does not see MPTCP option in 3WHS ACK
-                        or cheksum fails or see MP_FAIL
-                        TODO register frame nb where it happens
-                        etc...*/
+MPTCP_CON_SERVER_ABORTED,  /* if 3WHS prevents 3WHS ACK */
+//                        or cheksum fails or see MP_FAIL
+//                        TODO register frame nb where it happens
+//                        etc...*/
 MPTCP_CON_PENDING,
 MPTCP_CON_INCORRECT,
 MPTCP_CON_OK
@@ -343,10 +343,10 @@ MPTCP_CON_OK
 // structure, find
 struct mptcp_analysis {
 
-	guint16 flags; /* see MPTCP_A_* in packet-tcp.c */
+    guint16 mp_flags; /* see MPTCP_META_* in packet-tcp.c */
 
-    mptcp_flow_t flow1; /* TODO rename into meta_flow */
-    mptcp_flow_t flow2;
+    mptcp_flow_t meta_flow1; /* TODO rename into meta_flow */
+    mptcp_flow_t meta_flow2;
 
 	/* These pointers are set by XXXXX get_tcp_conversation_data()
 	 * fwd point in the same direction as the current packet
@@ -355,12 +355,12 @@ struct mptcp_analysis {
     mptcp_flow_t* fwd;
     mptcp_flow_t* rev;
 
-    /* TODO rename to mp_stream Keep track of mptcp stream */
+    /* TODO  Keep track of mptcp stream */
     guint32 stream;
 
     /* hmac decided after negociation */
     mptcp_hmac_algorithm_t hmac_algo;
-    gboolean checksum_required;   /* checksum required */
+//    gboolean checksum_required;   /* checksum required */
 
     guint8 version; /* MPTCP version (4bits)*/
 
@@ -372,7 +372,7 @@ struct mptcp_analysis {
     TODO rename into master ?
     */
 //    guint32 master_stream;
-    struct tcp_analysis *master_stream;
+    struct tcp_analysis *master;
 
     /* UNused for now ?
     true if connection not yet confirmed or oculd not find master ?

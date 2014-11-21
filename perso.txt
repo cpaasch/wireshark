@@ -1,5 +1,6 @@
 ==== To Speed up compilation ===
-CFLAGS="-Wno-unused-but-set-variable" ../configure --enable-setcap-install --without-gtk3 --with-qt  --disable-warnings-as-errors
+CFLAGS="-Wno-unused-but-set-variable" ../configure --enable-setcap-install --without-gtk3 --with-qt  --disable-warnings-as-errors --disable-warnings-as-errors --enable-mergecap=no --enable-airpcap=no --enable-rawshark=no --enable-editcap=no --with-pcap-remote=no
+
 CFLAGS="-Wno-unused-but-set-variable -g3 -O0" CXXFLAGS=$CFLAGS ../configure --enable-setcap-install --without-gtk3 --with-qt --disable-warnings-as-errors --enable-mergecap=no --enable-airpcap=no --enable-rawshark=no --enable-editcap=no --with-pcap-remote=no
 
 
