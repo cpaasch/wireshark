@@ -261,7 +261,7 @@ static int hf_tcp_option_mptcp_ipv6 = -1;
 static int hf_tcp_option_mptcp_port = -1;
 static int hf_tcp_option_mptcp_tcp_seq_to_dsn = -1;
 static int hf_tcp_option_mptcp_analysis_duplicate_ack = -1;
-static int hf_tcp_option_mptcp_pending = -1;
+//static int hf_tcp_option_mptcp_pending = -1;
 static int hf_tcp_option_mptcp_tailssn = -1;
 static int hf_tcp_option_mptcp_taildsn = -1;
 static int hf_tcp_option_mptcp_expected_token = -1;
@@ -527,6 +527,9 @@ static const fragment_items tcp_segment_items = {
 /* TODO list state */
 static const value_string mptcp_state_vs[] = {
   { MPTCP_CON_SERVER_ABORTED, "Server does not support MPTCP" },
+  { MPTCP_CON_OK, "OK" },
+  { MPTCP_CON_PENDING, "Could not associate with a master" },
+  { MPTCP_CON_NO_ALGO_SELECTED, "No crypto algorithm could be selected" },
   { 0, NULL }
 };
 
@@ -567,7 +570,7 @@ guint64 dsn_trunc_msb32(guint64 dsn) {
 
 /* need to track nextseq to do it correctly */
 static
-guint64 get_full_dsn(packet_info *pinfo _U_, mptcp_flow_t *f, guint64 dsn) {
+guint64 get_full_dsn(packet_info *pinfo _U_, mptcp_meta_flow_t *f, guint64 dsn) {
 
 //    guint64 upperBits = 0;
 //    printf("dsn before %lu\n",dsn);
@@ -583,7 +586,7 @@ guint64 get_full_dsn(packet_info *pinfo _U_, mptcp_flow_t *f, guint64 dsn) {
 
 /* converts 32bits DSN to 64bits DSN and complements the upper 32 bits */
 //static
-//guint64 dsn32_align64(packet_info *pinfo, mptcp_flow_t *f, guint32 dsn) {
+//guint64 dsn32_align64(packet_info *pinfo, mptcp_meta_flow_t *f, guint32 dsn) {
 //    return get_full_dsn(pinfo, f, (guint64)dsn);
 //}
 
@@ -732,7 +735,7 @@ static gboolean tcp_calculate_ts          = FALSE;
 
 /* MPTCP meta analysis related */
 //#define MPTCP_META_RETRANSMISSION      0x0001
-//#define MPTCP_META_CHECKSUM_REQUIRED   0x0002
+#define MPTCP_META_CHECKSUM_REQUIRED   0x0002
 //#define MPTCP_META_DUPLICATE_ACK       0x0004
 //#define MPTCP_META_HAS_MASTER          0x0008
 #define MPTCP_META_HAS_CLIENTKEY       0x0010
@@ -880,7 +883,7 @@ Returns 0
 static mptcp_mapping_t *
 // gboolean / gint
 mptcp_subflow_add_mapping(
-mptcp_flow_t* fwd _U_,
+mptcp_meta_flow_t* fwd _U_,
 // mptcp_analysis
 mptcp_subflow_t *subflow, mptcp_mapping_t *mapping) {
 
@@ -998,7 +1001,7 @@ for instance when an MP_FASTCLOSE is sent
 /*
 */
 static void
-mptcp_init_flow(mptcp_flow_t *flow ) {
+mptcp_init_flow(mptcp_meta_flow_t *flow ) {
     flow->key = 0;
     flow->flags =0;
     flow->version=0;
@@ -2221,13 +2224,18 @@ finalize_mptcp_connection(struct tcp_analysis* tcpd, mptcp_info_t *mph) {
 
     if(mph->mh_join) {
         //! Do nothing, association code is for now elsewhere
+        return FALSE;
+    }
+    else if(!mph->mh_mpc) {
+        mptcpd->state = MPTCP_CON_SERVER_ABORTED;
+        return FALSE;
     }
 
     /* if didn't see 3WHS in total */
     if( (mptcpd->mp_flags & (MPTCP_META_HAS_CLIENTKEY | MPTCP_META_HAS_SERVERKEY) ) != ( MPTCP_META_HAS_CLIENTKEY | MPTCP_META_HAS_SERVERKEY) )
     {
       //!
-      printf("connection has not both keys\n");
+//      printf("connection has not both keys\n");
       mptcpd->state = MPTCP_CON_SERVER_ABORTED;
       return FALSE;
     }
@@ -2244,7 +2252,8 @@ finalize_mptcp_connection(struct tcp_analysis* tcpd, mptcp_info_t *mph) {
 
     // TODO or if more than 1 algo
     if( res == 0) {
-        printf("No algo selected\n");
+//        printf("No algo selected\n");
+        mptcpd->state = MPTCP_CON_NO_ALGO_SELECTED;
         //! TODO no algo chosen :s add an expert note
         return FALSE;
     }
@@ -2267,6 +2276,28 @@ The responder responds with only 1 bit set -- this is the chosen algorithm */
 
     return TRUE;
 }
+
+/* This should be slow so don't abuse it.
+Called when see a token, in Syn + MP_JOIN for instance
+*/
+static struct tcp_analysis*
+mptcp_search_master(GHRFunc comparator, gpointer tosearch) {
+    conversation_t* conv;
+//    printf("search for mptcp connection...\n");
+    conv = (conversation_t*)g_hash_table_find( get_conversation_hashtable_exact(), comparator, tosearch);
+
+    if(conv){
+
+        struct tcp_analysis* tcpd = (struct tcp_analysis*)conversation_get_proto_data(conv,proto_tcp);
+
+        DISSECTOR_ASSERT(tcpd);
+        return tcpd;
+    }
+
+    return NULL;
+}
+
+
 
 /*
 Analysis should be done only once per packet
@@ -2324,11 +2355,12 @@ packet_info *pinfo _U_, tvbuff_t *tvb _U_, proto_tree *tree _U_,
             matching_tcpd=mptcp_search_master(&mptcp_check_token, (gpointer)&mph->mh_token);
         }
         else if( mph->mh_fastclose ) {
+            mptcpd->rev->key=mph->mh_key;
             matching_tcpd=mptcp_search_master(&mptcp_check_key,(gpointer)&mph->mh_key);
         }
 
         if( matching_tcpd )
-            matching_tcpd=mptcp_attach_connection(matching_tcpd->mptcp_analysis, tcpd);
+            mptcp_attach_connection(matching_tcpd->mptcp_analysis, tcpd);
     }
 
 
@@ -2448,6 +2480,11 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
         printf("Expected_idsn not set\n");
         return ;
     }
+
+//    if(== MPTCP_CON_SERVER_ABORTED) {
+//
+//    }
+    proto_item_append_text(tree, ": %s", val_to_str(mptcpd->state, mptcp_state_vs, "Unknown (%d)"));
 
     if(mptcpd->state != MPTCP_CON_OK)
         return ;
@@ -3712,26 +3749,6 @@ dissect_tcpopt_timestamp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
         tcp_info_append_uint(pinfo, "TSval", ts_val);
         tcp_info_append_uint(pinfo, "TSecr", ts_ecr);
     }
-}
-
-/* This should be slow so don't abuse it.
-Called when see a token, in Syn + MP_JOIN for instance
-*/
-struct struct tcp_analysis*
-mptcp_search_master(GHRFunc comparator, gpointer tosearch) {
-    conversation_t* conv;
-//    printf("search for mptcp connection...\n");
-    conv = (conversation_t*)g_hash_table_find( get_conversation_hashtable_exact(), comparator, tosearch);
-
-    if(conv){
-
-        struct tcp_analysis* tcpd = (struct tcp_analysis*)conversation_get_proto_data(conv,proto_tcp);
-
-        DISSECTOR_ASSERT(tcpd);
-        return tcpd;
-    }
-
-    return NULL;
 }
 
 

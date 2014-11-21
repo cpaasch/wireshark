@@ -217,7 +217,7 @@ MPTCP_HMAC_SHA1
 } mptcp_hmac_algorithm_t;
 
 /* look a lot like _tcp_flow_t*/
-typedef struct _mptcp_flow_t {
+typedef struct _mptcp_meta_flow_t {
     //
 //    hmac_algo;   /* algo used to generate hmacs/tokens */
 //    gboolean checksum_required;   /* checksum required */
@@ -257,7 +257,7 @@ typedef struct _mptcp_flow_t {
 
     wmem_tree_t *dsn_wraps; /* records frames numbers for which 32bits DSN wrapped.
                                 Indexed by frame number */
-} mptcp_flow_t;
+} mptcp_meta_flow_t;
 
 typedef struct _tcp_flow_t {
 	guint32 base_seq;	/* base seq number (used by relative sequence numbers)
@@ -332,6 +332,7 @@ typedef enum {
 //MPTCP_CON_ACK,
 MPTCP_CON_3WHS, /* bootstrapping */
 MPTCP_CON_SERVER_ABORTED,  /* if 3WHS prevents 3WHS ACK */
+MPTCP_CON_NO_ALGO_SELECTED,  /* if 3WHS prevents 3WHS ACK */
 //                        or cheksum fails or see MP_FAIL
 //                        TODO register frame nb where it happens
 //                        etc...*/
@@ -345,15 +346,15 @@ struct mptcp_analysis {
 
     guint16 mp_flags; /* see MPTCP_META_* in packet-tcp.c */
 
-    mptcp_flow_t meta_flow1; /* TODO rename into meta_flow */
-    mptcp_flow_t meta_flow2;
+    mptcp_meta_flow_t meta_flow1; /* TODO rename into meta_flow */
+    mptcp_meta_flow_t meta_flow2;
 
 	/* These pointers are set by XXXXX get_tcp_conversation_data()
 	 * fwd point in the same direction as the current packet
 	 * and rev in the reverse direction
 	 */
-    mptcp_flow_t* fwd;
-    mptcp_flow_t* rev;
+    mptcp_meta_flow_t* fwd;
+    mptcp_meta_flow_t* rev;
 
     /* TODO  Keep track of mptcp stream */
     guint32 stream;

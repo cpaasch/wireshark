@@ -1,77 +1,60 @@
-==== To Speed up compilation ===
+==== Build  ===
+To Speed up compilation I've created 2 subfolders "debug" and "release"
+
+./autogen.sh cd debug && ../configure .... && make -j4
+
+
+In release subfolder, I typically run this configuration
 CFLAGS="-Wno-unused-but-set-variable" ../configure --enable-setcap-install --without-gtk3 --with-qt  --disable-warnings-as-errors --disable-warnings-as-errors --enable-mergecap=no --enable-airpcap=no --enable-rawshark=no --enable-editcap=no --with-pcap-remote=no
 
+In debug subfolder, I typically run this configuration:
 CFLAGS="-Wno-unused-but-set-variable -g3 -O0" CXXFLAGS=$CFLAGS ../configure --enable-setcap-install --without-gtk3 --with-qt --disable-warnings-as-errors --enable-mergecap=no --enable-airpcap=no --enable-rawshark=no --enable-editcap=no --with-pcap-remote=no
 
 
-./configure
 When compiling, do make -C epan/dissectors
 assuming it is a memory-related issue, it will help much if you compile with CFLAGS='-fsanitize=address -g3 -O1' CXXFLAGS=$CFLAGS LDFLAGS=-fsanitize=address
 
 
-=== display seq nb relative to mptcp ===
-tcp.stream == 0
-le DSS de base doit être : 1671049450 mapped to TCP seq 1
-col_prepend_fence_fstr
 
 === To debug wireshark ====
-edit epan/dissectors/Makefile and take out the "-O2" (there should only be two instances of it) 
-make -C epan
 libtool --mode=execute gdb wireshark
-redo the pending part
 
-=== Tshark specifics ====
-proto.c:proto_registrar_dump_fields
-
-=== Conversations dialog ===
-Some buttons should only appear when TCP selected ?
-React on "Display subflows" (itemSelectionChanged), 
-just change filter
 
 === TODO ===
-- check tokens depending on algorithm set
-- be able to export to CSV connections
-- be able to export list of subflows as a csv string of tcp stream ids (same as for)
-- sometimes tries to map numbers it hsould'nt try to map (during the syn for isntance)
-- for each connection set some flag like:
---- may_miss_some_flows (If some holes detected in the DSN, it may have been sent on a non captured interface)
---- has_seen_all_dsns (rather then the previous one)
---- seen master / associated_to_master
+- be able to export connections via CSV 
+- find duplicate DATAACKS/Mappings
+- display statistics/graphs as in the SCTP plugin:
+--- about application latency
+--- throughput 
+--- windows
 
 
 === BUGS ===
 - in legacy tcp, if SYN/ACK with seq nb 0 then the relative seq nb becomes (unsigned)0-1 while it is ok in the syn direction (I sent a fix upstream https://code.wireshark.org/review/#/c/5387/1/epan/dissectors/packet-tcp.h)
 - does not list all subflows correctly (apparently because master set wrongly)
 
-IDSN sur 32 bits comme ca : 1671049450
 
-IDSN 32bits: 676804998
-IDSN 64bits: 243371131 5938130310
 
-243371131 6932374762
-
-Montrer toutes les connections avec le débit, en fait traffic_table_dialog affiche en son sein
-un conversation_dialog.h
-Dans conversation_dialog.h, il faut enregistrer un:
+traffic_table_dialog;
+In conversation_dialog.h, record a
 typedef struct register_ct register_ct_t;
-dans follow.h, ajouter MPTCP
 void TrafficTableDialog::copyAsCsv()
-
 void TrafficTableDialog::copyAsCsv() should be made generic
 
 === To add a file ===
 check Makefile.am, et Makefile.common
 
 === Conversation Dialog  ===
-Chaque tab est créé via
+Each tab created with
 addTrafficTable(get_conversation_by_proto_id(conv_proto));
 add_conversation_table_data_with_conv_id
 add 2 checkboxes:
--Afficher que les MPTCP
--Masquer les sous flots (pas la peine de créer unen nouvelle fenetre)
+-Display MPTCP only
+-Hide subflows
 
 
-=== Move MPTCP to a tap ? ===
+=== tap MPTCP ===
+it is possible since along tcpheader is generated mptcpheader.
 register_tap("mptcp")
 register_tap_listener
 After each individual packet has been completely dissected and all
@@ -80,16 +63,8 @@ to receive tap data during the dissection of the frame will be called in
 sequence.
 There may be several TCP segments in a same frame (ie encapsulation )
 
+
 ==== To tests current code ===
 
 ./wireshark -r ~/pcaps/mptcp167.1407349533.bmL/dump_strip.pcap -Y "tcp.options.mptcp.stream"
 
-expected isdn : 2020798786
-mptcp.analysis
-
-<Lekensteyn> teto_: use cmake
-<Lekensteyn> actually, you can use autotools too
-<Lekensteyn> autotools, ./autogen.sh && mkdir build1 && cd build1 && ../configure .... && make
-<Lekensteyn> repeat for build2
-<Lekensteyn> cmake: cd build1 && cmake .. && make
-<Lekensteyn> if you have two different code bases, you could copy the repo
