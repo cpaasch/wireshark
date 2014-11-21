@@ -731,14 +731,14 @@ static gboolean tcp_calculate_ts          = FALSE;
 #define TCP_A_SPURIOUS_RETRANSMISSION 0x4000
 
 /* MPTCP meta analysis related */
-#define MPTCP_META_RETRANSMISSION      0x0001
-#define MPTCP_META_CHECKSUM_REQUIRED   0x0002
-#define MPTCP_META_DUPLICATE_ACK       0x0004
+//#define MPTCP_META_RETRANSMISSION      0x0001
+//#define MPTCP_META_CHECKSUM_REQUIRED   0x0002
+//#define MPTCP_META_DUPLICATE_ACK       0x0004
 //#define MPTCP_META_HAS_MASTER          0x0008
 #define MPTCP_META_HAS_CLIENTKEY       0x0010
 #define MPTCP_META_HAS_SERVERKEY       0x0020
 
-/* MPTCP subflow analysis related */
+/* MPTCP subflow analysis related has_meta() */
 #define MPTCP_SF_ASSOCIATED        0x0001
 #define MPTCP_SF_PENDING           0x0002
 #define MPTCP_SF_ABORTED           0x0004
@@ -2167,10 +2167,8 @@ this is costly so don't do it too often .
                 Only supports Sha1 for now */
 static
 gboolean
-mptcp_cache_cryptodata(mptcp_hmac_algorithm_t algo _U_,
-//const guint8* key,
-const guint64 key,
-guint32 *token,guint64 *idsn)
+mptcp_cache_cryptodata(mptcp_hmac_algorithm_t algo _U_, const guint64 key,
+    guint32 *token,guint64 *idsn)
 {
 //    guint32 result = 0;
 //    int i = 0;
@@ -2178,38 +2176,24 @@ guint32 *token,guint64 *idsn)
     #define SHA1_BUFFER_SIZE  20
     guint8 digest_buf[SHA1_BUFFER_SIZE];
     tvbuff_t *tvb;
-    guint64 pseudokey = GUINT64_TO_LE(key);
+    guint64 pseudokey = GUINT64_SWAP_LE_BE(key);
 
     sha1_context sha1_ctx;
     sha1_starts(&sha1_ctx);
-    // la clé a l'air de passer correctement, dans le bon ordre
-//    printf("key [%lu] to hash\n",key);
-    //
 
+//    printf("key [%lu] to hash\n",key);
 
     sha1_update(&sha1_ctx,(const guint8*)&pseudokey , 8);
     sha1_finish(&sha1_ctx, digest_buf);
-    // truncated to the 32 most significant bits
-    // could be used to convert key to token
-//    guint32_to_str_buf()
-//    str_to_val()
-    //bytestring_to_str
-//    for(i = 0; i < ; ++i) {
-//    i = 3;
+
     // TODO unallocate tvb or done automatically ?
     tvb = tvb_new_real_data( (const guint8*)&digest_buf,SHA1_BUFFER_SIZE,SHA1_BUFFER_SIZE);
-//    ()
-//    *token = tvb_get_ntohl(tvb,SHA1_BUFFER_SIZE-4);
-//    printf("result: %u\n",*token);
-    // THis one is good
+
     *token = tvb_get_ntohl(tvb,0);
-
     *idsn = tvb_get_ntoh64(tvb, SHA1_BUFFER_SIZE-8);
-//        printf("result1: %lu to %u\n",*idsn, (guint32)*idsn );
 
-//			proto_tree_add_text(udvm_tree, message_tvb, 0, -1,
-//					"Calculated SHA-1: %s",
-//					bytes_to_ep_str(sha1_digest_buf, STATE_BUFFER_SIZE));
+//    printf("result1: %lu to %u\n",*idsn, (guint32)*idsn );
+
     #undef SHA1_BUFFER_SIZE
     return *token;
 }
@@ -2217,20 +2201,27 @@ guint32 *token,guint64 *idsn)
 
 /* TODO make sure that the other end confirmed the MP_CAPABLE option
 else drop the mptcpd
+
 return false if fallback to TCP ?
+
 MP_CAPABLE option in the third packet of the TCP handshake.  If this
    option is not present, the connection SHOULD fall back to regular
    TCP,
 */
 static gboolean
-finalize_mptcp_connection(struct tcp_analysis* tcpd) {
+finalize_mptcp_connection(struct tcp_analysis* tcpd, mptcp_info_t *mph) {
+
     struct mptcp_analysis *mptcpd = tcpd->mptcp_analysis;
     guint8 res;
     printf("finalizing connection\n");
 //    mptcp_hmac_algorithm_t algo;
 //    #define GET_MPTCP_VERSION(flag) flags & 0x0F
     #define GET_CHECKSUM(flow) ( (flow.flags) & 0x80)
-    #define GET_HMAC_ALGOS(flow) ( (flow.flags) & 0x0F)
+    #define GET_HMAC_ALGOS(flow) ( (flow.flags) & 0x3F)
+
+    if(mph->mh_join) {
+        //! Do nothing, association code is for now elsewhere
+    }
 
     /* if didn't see 3WHS in total */
     if( (mptcpd->mp_flags & (MPTCP_META_HAS_CLIENTKEY | MPTCP_META_HAS_SERVERKEY) ) != ( MPTCP_META_HAS_CLIENTKEY | MPTCP_META_HAS_SERVERKEY) )
@@ -2241,8 +2232,9 @@ finalize_mptcp_connection(struct tcp_analysis* tcpd) {
       return FALSE;
     }
 
-    //!
+
     mptcpd->version = MIN(mptcpd->meta_flow1.version, mptcpd->meta_flow2.version);
+
     /*if either host requires the use of checksums, checksums MUST be used*/
     if(GET_CHECKSUM(mptcpd->meta_flow1) || GET_CHECKSUM(mptcpd->meta_flow2)){
       mptcpd->mp_flags |= MPTCP_META_CHECKSUM_REQUIRED;
@@ -2250,9 +2242,9 @@ finalize_mptcp_connection(struct tcp_analysis* tcpd) {
 
     res = GET_HMAC_ALGOS(mptcpd->meta_flow1) & GET_HMAC_ALGOS(mptcpd->meta_flow2);
 
-    printf("Algo chosen %u\n", res);
     // TODO or if more than 1 algo
     if( res == 0) {
+        printf("No algo selected\n");
         //! TODO no algo chosen :s add an expert note
         return FALSE;
     }
@@ -2269,7 +2261,7 @@ The responder responds with only 1 bit set -- this is the chosen algorithm */
     //! Generate the token now (need str)
 
     mptcpd->master=tcpd;
-    printf("finalizing connection 2, master %u\n",mptcpd->master->stream);
+//    printf("finalizing connection 2, master %u\n",mptcpd->master->stream);
     #undef GET_CHECKSUM
     #undef GET_HMAC_ALGOS
 
@@ -2291,7 +2283,7 @@ packet_info *pinfo _U_, tvbuff_t *tvb _U_, proto_tree *tree _U_,
     DISSECTOR_ASSERT(mptcpd != NULL);
 
 
-    /* if it's a syn packet */
+    /* if includes a syn */
     if(tcph->th_flags & TH_SYN) {
 
         /* if there is an option MP_CAPABLE */
@@ -2308,73 +2300,76 @@ packet_info *pinfo _U_, tvbuff_t *tvb _U_, proto_tree *tree _U_,
     //            expert_add_info(pinfo, item, &ei_mptcp_analysis_unsupported_algorithm);
             }
 
-            printf("setting mp_flags %u\n",tcph->th_flags);
             mptcpd->mp_flags |= (tcph->th_flags == TH_SYN) ? MPTCP_META_HAS_CLIENTKEY : MPTCP_META_HAS_SERVERKEY;
             mptcpd->master = tcpd;
         }
+//        else
 
-        if( (tcph->th_flags & (TH_SYN | TH_ACK) )== (TH_SYN | TH_ACK) ) {
-            printf("mp_flags before call to finalize: %u\n",tcph->th_flags);
-            finalize_mptcp_connection(tcpd);
-        }
+
+            if( (tcph->th_flags & (TH_SYN | TH_ACK) )== (TH_SYN | TH_ACK) ) {
+    //            printf("mp_flags before call to finalize: %u\n",tcph->th_flags);
+                finalize_mptcp_connection(tcpd, mph);
+            }
+
     }
 
-
-
-      /* if SYN */
-//      if(tcph->th_flags == TH_SYN) {
-//      }
-//      /* or SYN/ACK */
-//      else if(tcph->th_flags & (TH_SYN |TH_ACK) == tcph->th_flags) {
-//        mptcpd->mp_flags |= MPTCP_META_HAS_SERVERKEY;
-//        mptcpd->fwd->key = mph->mh_key;
-//
-//      }
-                //mptcpd->key1
-                // tvb_bytes_to_ep_str
-//                        base64_to_tvb()
 
     /* if association pending we should try to attach the connections together
     Ideally we could even link together connections that sent a similar token during SYN + MP_JOIN
     without seeing the master
      */
-    if(!mptcp_has_master(tcpd) && (mph->mh_join || mph->mh_fastclose ) ) {
-
-//        struct tcp_analysis *master = NULL;
-        GHRFunc comparator; /* hashtable*/
-        gpointer tosearch;
-        conversation_t* conv;
-
-        /* if syn join */
-        if(mph->mh_join && ( (tcph->th_flags & TH_SYN) == tcph->th_flags) ) {
-            tosearch = (gpointer)&mph->mh_token;
-            comparator = &mptcp_check_token;
-//            found= mptcp_find_master_from_token(token);
+    if(!mptcp_has_master(tcpd)) {
+        struct tcp_analysis* matching_tcpd;
+        if( mph->mh_join ) {
+            matching_tcpd=mptcp_search_master(&mptcp_check_token, (gpointer)&mph->mh_token);
         }
-        /* fastclose embeds recvkey */
-        else if(mph->mh_fastclose) {
-            tosearch = (gpointer)&mph->mh_key;
-            comparator = &mptcp_check_key;
-//            found = mptcp_find_master_from_key(mph->mh_recvkey);
-        }
-        else {
-            DISSECTOR_ASSERT_NOT_REACHED();
+        else if( mph->mh_fastclose ) {
+            matching_tcpd=mptcp_search_master(&mptcp_check_key,(gpointer)&mph->mh_key);
         }
 
-//    printf("search for mptcp connection...\n");
-        conv = (conversation_t*)g_hash_table_find( get_conversation_hashtable_exact(), comparator , tosearch);
-
-        if(conv){
-
-            struct tcp_analysis* matching_tcpd = (struct tcp_analysis*)conversation_get_proto_data(conv,proto_tcp);
-
-            DISSECTOR_ASSERT(matching_tcpd );
-            mptcp_attach_connection(matching_tcpd->mptcp_analysis, tcpd);
-//            mptcp_add_subflow_to_connection(mptcpd,tcpd);
-        }
-
+        if( matching_tcpd )
+            matching_tcpd=mptcp_attach_connection(matching_tcpd->mptcp_analysis, tcpd);
     }
 
+
+//        struct tcp_analysis *master = NULL;
+//        GHRFunc comparator; /* hashtable*/
+//        gpointer tosearch;
+//        conversation_t* conv;
+
+        /* if syn join */
+//        if(mph->mh_join && ( (tcph->th_flags & TH_SYN) == tcph->th_flags) ) {
+//            tosearch = ;
+//            comparator = &mptcp_check_token;
+////            found= mptcp_find_master_from_token(token);
+//        }
+//        /* fastclose embeds recvkey */
+//        else if(mph->mh_fastclose) {
+//            tosearch = ;
+//            comparator = &mptcp_check_key;
+////            found = mptcp_find_master_from_key(mph->mh_recvkey);
+//        }
+//        else {
+////            DISSECTOR_ASSERT_NOT_REACHED();
+////            return;
+//            goto next;
+//        }
+
+//    printf("search for mptcp connection...\n");
+//        conv = (conversation_t*)g_hash_table_find( get_conversation_hashtable_exact(), comparator , tosearch);
+//
+//        if(conv){
+//
+//            struct tcp_analysis* matching_tcpd = (struct tcp_analysis*)conversation_get_proto_data(conv,proto_tcp);
+//
+//            DISSECTOR_ASSERT(matching_tcpd );
+//            mptcp_attach_connection(matching_tcpd->mptcp_analysis, tcpd);
+////            mptcp_add_subflow_to_connection(mptcpd,tcpd);
+//        }
+
+
+
+    return;
 }
 
 
@@ -2419,8 +2414,6 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
     tree=proto_item_add_subtree(item, ett_mptcp_analysis);
 
 
-    //proto_item_get_parent
-
     /* set field with mptcp stream */
     if( mptcp_has_master(tcpd) &&  ( mptcpd->master != tcpd) ) {
 
@@ -2429,14 +2422,7 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
                                      , "Master is tcp stream %u", mptcpd->master->stream
                                      );
 
-//        item = proto_tree_add_boolean(tree, hf_tcp_option_mptcp_has_master, tvb, 0,
-//                                     0, TRUE );
     }
-//    else
-//      if(mptcp_has_master(tcpd) )
-//      {
-//
-//    }
     else {
           item = proto_tree_add_boolean(tree, hf_tcp_option_mptcp_has_master, tvb, 0,
                                      0, mptcp_has_master(tcpd) ? TRUE : FALSE);
@@ -2458,9 +2444,10 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
 
 
     //! if dunno the idsn, then can't compute base_seq
-    if(mptcpd->fwd->expected_idsn == 0)
+    if(mptcpd->fwd->expected_idsn == 0) {
+        printf("Expected_idsn not set\n");
         return ;
-
+    }
 
     if(mptcpd->state != MPTCP_CON_OK)
         return ;
@@ -2476,7 +2463,7 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
 
     /* analyze dss */
     if( (mph->mh_dss == TRUE)){
-        printf("DSS option with ssn %u\n", mph->mh_ssn);
+        printf("DSS option with ssn %u in packet %u\n", mph->mh_ssn, pinfo->fd->num);
 
         /* if mapping present */
         if( (mph->mh_flags & (DssFlag_MappingPresent) ) )
@@ -2487,6 +2474,7 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
             /* if dsn of 32bits get abs dsn */
             if( !(DssFlag_DsnOfEightBytes & mph->mh_flags)) {
                 abs_dsn=get_full_dsn(pinfo, mptcpd->fwd, abs_dsn);
+                printf("translated dsn to 64bits form: %lu\n", abs_dsn);
             }
 
             if(tcp_relative_seq) {
@@ -2557,8 +2545,9 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
 
 
 
-    // TODO during MP_CAPABLE exchange only
-    if(mph->mh_mpc == FALSE && mph->mh_join == FALSE) {
+    if(mph->mh_mpc == FALSE
+        && mph->mh_join == FALSE
+        ) {
         guint64 abs_dsn=0;
 //        mptcp_mapping_t *mapping = mptcp_map_seq_to_mapping(pinfo,tcpd->fwd->mptcp,rel_ssn);
         mptcp_mapping_t *mapping = mptcp_subflow_find_mapping(tcpd->fwd->mptcp,rel_ssn);
@@ -2580,8 +2569,10 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
                 //! mapping was not received at the time
                 expert_add_info(pinfo, tree, &ei_mptcp_analysis_mapping_should_not_be_known);
             }
-            abs_dsn = mptcp_map_seq_to_dsn(mapping,rel_ssn);
+//            print("Rel_ssn ");
 
+            abs_dsn = mptcp_map_seq_to_dsn(mapping,rel_ssn);
+            printf("ABS DSN %lu",abs_dsn);
 
 //            proto_tree_add_uint64_format_value(tree, hf_tcp_option_mptcp_tcp_seq_to_dsn, tvb, 0, 0, abs_dsn ,"%lu (Absolute dsn)",abs_dsn );
             // TODO place it better
@@ -2633,7 +2624,9 @@ mptcp_print_analysis(packet_info *pinfo, tvbuff_t *tvb, proto_tree *parent_tree,
               hf_tcp_option_mptcp_expected_idsn, tvb, 0, 0, mptcpd->fwd->expected_idsn,"" );
   }
 
-  /* List subflows */
+  /* List subflows
+  TODO bug, does not display all subflows
+  */
   {
       GSList *it;
       for( it = mptcpd->subflows; it != NULL; it = g_slist_next(it)) {
@@ -3721,28 +3714,25 @@ dissect_tcpopt_timestamp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
     }
 }
 
-
-
 /* This should be slow so don't abuse it.
 Called when see a token, in Syn + MP_JOIN for instance
 */
-//static struct tcp_analysis*
-//mptcp_find_master_from_token(guint32 token)
-//{
-//    conversation_t* conv;
-////    printf("search for mptcp connection...\n");
-//    conv = (conversation_t*)g_hash_table_find( get_conversation_hashtable_exact(), mptcp_check_token, (gpointer)&token);
-//
-//    if(conv){
-//
-//        struct tcp_analysis* tcpd = (struct tcp_analysis*)conversation_get_proto_data(conv,proto_tcp);
-//
-//        DISSECTOR_ASSERT(tcpd);
-//        return tcpd;
-//    }
-//
-//    return NULL;
-//}
+struct struct tcp_analysis*
+mptcp_search_master(GHRFunc comparator, gpointer tosearch) {
+    conversation_t* conv;
+//    printf("search for mptcp connection...\n");
+    conv = (conversation_t*)g_hash_table_find( get_conversation_hashtable_exact(), comparator, tosearch);
+
+    if(conv){
+
+        struct tcp_analysis* tcpd = (struct tcp_analysis*)conversation_get_proto_data(conv,proto_tcp);
+
+        DISSECTOR_ASSERT(tcpd);
+        return tcpd;
+    }
+
+    return NULL;
+}
 
 
 
@@ -3823,7 +3813,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
     switch (subtype) {
         case TCPOPT_MPTCP_MP_CAPABLE:
             {
-            mptcpd->state = MPTCP_CON_3WHS;
+//            mptcpd->state = MPTCP_CON_3WHS;
 
             mph->mh_mpc = TRUE;
             // TODO check if it is a retransmission first to check if exchanged keys change
@@ -4075,9 +4065,7 @@ dissect_tcpopt_mptcp(const ip_tcp_opt *optp _U_, tvbuff_t *tvb,
                 proto_tree_add_item(mptcp_tree,
                             hf_tcp_option_mptcp_subflow_seq_no, tvb, offset,
                             4, ENC_BIG_ENDIAN);
-//                mapping->ssn =
                 mph->mh_ssn =  tvb_get_ntohl(tvb,offset);
-                printf("Reading mh_ssn %u\n",mph->mh_ssn);
                 offset += 4;
 
                 proto_tree_add_item(mptcp_tree,
@@ -6535,12 +6523,12 @@ proto_register_tcp(void)
             NULL, HFILL }},
 
         { &hf_tcp_option_mptcp_has_master,
-          { "Is this a master flow", "tcp.options.mptcp.master", FT_BOOLEAN, BASE_NONE,
+          { "Is this a master flow", "mptcp.master", FT_BOOLEAN, BASE_NONE,
             NULL, 0x0, NULL, HFILL}},
 
-        { &hf_tcp_option_mptcp_pending,
-          { "Pending (=unassociated) subflow", "tcp.options.mptcp.pending", FT_BOOLEAN, BASE_NONE,
-            NULL, 0x0, NULL, HFILL}},
+//        { &hf_tcp_option_mptcp_pending,
+//          { "Pending (=unassociated) subflow", "tcp.options.mptcp.pending", FT_BOOLEAN, BASE_NONE,
+//            NULL, 0x0, NULL, HFILL}},
 
         { &hf_tcp_option_mptcp_subtype,
           { "Multipath TCP subtype", "tcp.options.mptcp.subtype", FT_UINT8,
@@ -6635,7 +6623,7 @@ proto_register_tcp(void)
             BASE_DEC, NULL, 0x0, NULL, HFILL}},
 
         { &hf_tcp_option_mptcp_tailssn,
-          { "Multipath TCP tail Subflow Sequence Number", "tcp.options.mptcp.taildsn", FT_UINT64,
+          { "Multipath TCP tail Subflow Sequence Number", "tcp.options.mptcp.tailssn", FT_UINT64,
             BASE_DEC, NULL, 0x0, NULL, HFILL}},
 
         { &hf_tcp_option_mptcp_subflow_seq_no,
@@ -6651,7 +6639,7 @@ proto_register_tcp(void)
             BASE_DEC, NULL, 0x0, NULL, HFILL}},
 
         { &hf_tcp_option_mptcp_expected_idsn,
-          { "Multipath TCP Subflow first expected DACK", "tcp.options.mptcp.expected_dack", FT_UINT64,
+          { "Multipath TCP Subflow expected IDSN", "tcp.options.mptcp.expected_idsn", FT_UINT64,
             BASE_DEC, NULL, 0x0, NULL, HFILL}},
 
         { &hf_tcp_option_mptcp_tcp_seq_to_dsn,

@@ -40,8 +40,15 @@ just change filter
 
 
 === BUGS ===
-- in legacy tcp, if SYN/ACK with seq nb 0 then the relative seq nb becomes (unsigned)0-1 while it is ok in the syn direction (I sent a fix upstream)
+- in legacy tcp, if SYN/ACK with seq nb 0 then the relative seq nb becomes (unsigned)0-1 while it is ok in the syn direction (I sent a fix upstream https://code.wireshark.org/review/#/c/5387/1/epan/dissectors/packet-tcp.h)
+- does not list all subflows correctly (apparently because master set wrongly)
 
+IDSN sur 32 bits comme ca : 1671049450
+
+IDSN 32bits: 676804998
+IDSN 64bits: 243371131 5938130310
+
+243371131 6932374762
 
 Montrer toutes les connections avec le débit, en fait traffic_table_dialog affiche en son sein
 un conversation_dialog.h

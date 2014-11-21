@@ -379,7 +379,8 @@ struct mptcp_analysis {
     TODO use a flag. Negociating ? Broken ? Up ? Aborted ?
     */
 //    gboolean pending;
-    mptcp_connection_state_t state;
+//    mptcp_connection_state_t
+    guint16 state;
 };
 
 struct tcp_analysis {
